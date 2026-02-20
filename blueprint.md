@@ -1,13 +1,20 @@
-# Project Blueprint
+# Personal Stylist Service
 
 ## Overview
 
-This is a React application built with Vite. It is a simple, modern, and scalable setup.
+This application will provide personal styling recommendations to users based on their photo, height, and weight.
 
-## Current Request
+## Features
 
-- The user wants to install the Gemini CLI.
+### Initial UI (v1)
 
-## Implemented Features
+*   A screen where users can upload a photo of themselves.
+*   Input fields for users to enter their height and weight.
+*   A submit button to send the information for analysis.
 
-- Installed Gemini CLI and verified the installation.
+## Plan
+
+1.  **Create the basic UI:** Build a React component with a form to capture the user's photo, height, and weight.
+2.  **Style the UI:** Add CSS to make the UI visually appealing and user-friendly.
+3.  **Implement state management:** Use React hooks to manage the form data.
+4.  **Set up routing:** Use `react-router-dom` for potential future navigation.
