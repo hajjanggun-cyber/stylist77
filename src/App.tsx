@@ -1,232 +1,262 @@
 import { useState, useRef } from 'react'
 import './App.css'
 
+type Page = 'landing' | 'form'
+
 function App() {
-  const [height, setHeight] = useState('');
-  const [weight, setWeight] = useState('');
-  const [styleGoal, setStyleGoal] = useState('Professional & Sharp');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState('');
-  const formRef = useRef<HTMLElement>(null);
+  const [page, setPage] = useState<Page>('landing')
+  const [height, setHeight] = useState('')
+  const [weight, setWeight] = useState('')
+  const [styleGoal, setStyleGoal] = useState('Professional & Sharp')
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState('')
+  const [hairstyleImage, setHairstyleImage] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const goToLanding = () => {
+    setPage('landing')
+    setResult('')
+    setHairstyleImage(null)
+    setHeight('')
+    setWeight('')
+    setSelectedImage(null)
+  }
 
   const processFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => setSelectedImage(e.target?.result as string);
-    reader.readAsDataURL(file);
-  };
+    const reader = new FileReader()
+    reader.onload = (e) => setSelectedImage(e.target?.result as string)
+    reader.readAsDataURL(file)
+  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) processFile(e.target.files[0]);
-  };
+    if (e.target.files?.[0]) processFile(e.target.files[0])
+  }
 
-  const onDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
-  const onDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
+  const onDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true) }
+  const onDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false) }
   const onDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0]);
-  };
-
-  const scrollToForm = () => {
-    formRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+    e.preventDefault()
+    setIsDragging(false)
+    if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0])
+  }
 
   const analyzeStyle = async () => {
-    if (!height || !weight) { alert("키와 몸무게를 입력해주세요!"); return; }
-    setLoading(true);
-    setResult('');
+    if (!height || !weight) { alert('키와 몸무게를 입력해주세요!'); return }
+    setLoading(true)
+    setResult('')
+    setHairstyleImage(null)
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ height, weight, styleGoal, imageBase64: selectedImage || undefined }),
-      });
-      const data = await response.json() as { result?: string; error?: string };
-      if (!response.ok || data.error) { setResult(`오류: ${data.error || '알 수 없는 오류'}`); return; }
-      setResult(data.result || '분석 결과가 없습니다.');
+      })
+      const data = await response.json() as { result?: string; error?: string; hairstyleImage?: string }
+      if (!response.ok || data.error) { setResult(`오류: ${data.error || '알 수 없는 오류'}`); return }
+      setResult(data.result || '분석 결과가 없습니다.')
+      setHairstyleImage(data.hairstyleImage || null)
     } catch {
-      setResult("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
+      setResult('네트워크 오류가 발생했습니다. 다시 시도해주세요.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  return (
-    <div className="page">
-      {/* ── Sticky Nav ── */}
-      <nav className="nav">
-        <div className="nav__inner">
-          <div className="nav__logo">
-            <div className="nav__logo-icon">◆</div>
-            <h1 className="nav__logo-text">Aura</h1>
+  const progress = height && weight ? (selectedImage ? 100 : 66) : 33
+
+  // ── Landing Page ──
+  if (page === 'landing') {
+    return (
+      <div className="landing">
+        <div className="landing__bg-glow" />
+
+        <header className="landing__header">
+          <div className="landing__logo">
+            <span className="material-symbols-outlined landing__logo-icon">styler</span>
+            <span className="landing__logo-text">AI Stylist</span>
           </div>
-          <button className="nav__menu">☰</button>
-        </div>
-      </nav>
+        </header>
 
-      <main className="main">
-        {/* ── Hero ── */}
-        <section className="hero">
-          <div className="hero__blob hero__blob--tr" />
-          <div className="hero__blob hero__blob--bl" />
-
-          {/* AI Mockup Image */}
-          <div className="hero__img-wrap">
-            <img
-              className="hero__img"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDC3pBfXiRTRPD0Eqq3lICfTMKWdslrXtke7dUMOZt1PhASMpMVRSehX0pkSP8OvNVammoA_xUEZSxYkncr8glL7NwzZ7NHDh-TqFlI9OYDIUHp4aPAg6tLfRwaHbxRBG3GcP7o6mmnCEYEWoEn7NCECS4S2M-Jv8CD6eFHTlFkvQX4oiEpTTuUP5n4T3J79EDW2ULtToYTOJUUnoZj7fgwRQtLwPFhDjYBA8-vbM19yVS0o-DZiYp-PC8M2QHI1VGSNiOAfxuNimUJ"
-              alt="Fashion model standing with confident pose"
-            />
-            <div className="hero__overlay" />
-            <div className="hero__scan-line" />
-            <div className="hero__ui">
-              <div className="hero__badge">
-                <span className="hero__badge-dot" />
-                AI ANALYZING
-              </div>
-              <div className="hero__data-points">
-                <div className="hero__dp hero__dp--1">Height: 5'9"</div>
-                <div className="hero__dp hero__dp--2">Style: Minimalist</div>
-                <div className="hero__dp hero__dp--3">Match: 98%</div>
-              </div>
-            </div>
+        <main className="landing__main">
+          <div className="landing__badge">
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>auto_awesome</span>
+            AI-Powered Style Engine
           </div>
 
-          {/* Hero Text */}
-          <div className="hero__content">
-            <div className="hero__tag">✦ New Algorithm v2.0</div>
-            <h2 className="hero__title">
-              Find Your <span className="gradient-text">Perfect Fit</span> with AI
-            </h2>
-            <p className="hero__desc">
-              Upload a photo and let our neural networks curate your wardrobe based on your unique biometric measurements.
-            </p>
-            <div className="hero__cta-wrap">
-              <button className="hero__cta-btn" onClick={scrollToForm}>
-                📷 Start Analysis
-              </button>
-              <p className="hero__cta-note">No credit card required for first scan</p>
-            </div>
-          </div>
-        </section>
+          <h1 className="landing__title">
+            Discover Your <span className="landing__title-accent">Perfect Style</span>
+          </h1>
 
-        {/* ── Social Proof ── */}
-        <section className="brands">
-          <span className="brands__name brands__name--serif">VOGUE</span>
-          <span className="brands__name brands__name--italic">ELLE</span>
-          <span className="brands__name brands__name--mono">WIRED</span>
-          <span className="brands__name">GQ</span>
-        </section>
+          <p className="landing__desc">
+            Upload your photo, share your measurements, and let our AI craft a personalized style report tailored just for you.
+          </p>
 
-        {/* ── Features ── */}
-        <section className="features">
-          <div className="features__header">
-            <h3 className="features__title">Why Aura AI?</h3>
-            <p className="features__sub">Advanced styling technology at your fingertips.</p>
-          </div>
-          <div className="features__list">
+          <div className="landing__features">
             {[
-              { icon: '📐', bg: 'blue', title: 'Precision Styling', desc: 'Computer vision analyzes your exact measurements to ensure every garment fits like it was made for you.' },
-              { icon: '📊', bg: 'purple', title: 'Personalized Trends', desc: 'Our algorithms predict upcoming trends that align specifically with your personal style history.' },
-              { icon: '👗', bg: 'indigo', title: 'Wardrobe Optimization', desc: 'Maximize your closet potential by identifying mix-and-match opportunities you never saw before.' },
+              { icon: 'body_system', label: 'Body Shape Analysis' },
+              { icon: 'palette', label: 'Color Palette' },
+              { icon: 'content_cut', label: 'Hair Recommendations' },
             ].map(f => (
-              <div className="feature-card" key={f.title}>
-                <div className={`feature-card__icon feature-card__icon--${f.bg}`}>{f.icon}</div>
-                <div>
-                  <h4 className="feature-card__title">{f.title}</h4>
-                  <p className="feature-card__desc">{f.desc}</p>
-                </div>
+              <div className="landing__feature" key={f.label}>
+                <span className="material-symbols-outlined landing__feature-icon">{f.icon}</span>
+                <span className="landing__feature-label">{f.label}</span>
               </div>
             ))}
           </div>
-        </section>
 
-        {/* ── Quick Assessment Form ── */}
-        <section className="assessment" ref={formRef}>
-          <div className="assessment__card">
-            <div className="assessment__top-bar" />
-            <div className="assessment__body">
-              <h3 className="assessment__title">Quick Assessment</h3>
+          <button className="landing__cta" onClick={() => setPage('form')}>
+            Start My Style Analysis
+            <span className="material-symbols-outlined">arrow_forward</span>
+          </button>
 
-              {/* Image Upload */}
-              <label
-                htmlFor="img-upload"
-                className={`upload ${isDragging ? 'upload--drag' : ''} ${selectedImage ? 'upload--filled' : ''}`}
-                onDragOver={onDragOver}
-                onDragLeave={onDragLeave}
-                onDrop={onDrop}
-              >
-                {selectedImage
-                  ? <img src={selectedImage} alt="Preview" className="upload__preview" />
-                  : <div className="upload__placeholder">
-                    <span className="upload__icon">📷</span>
-                    <span className="upload__text">사진을 업로드하거나 드래그하세요</span>
-                    <span className="upload__sub">JPG, PNG 지원</span>
-                  </div>
-                }
-              </label>
-              <input id="img-upload" type="file" accept="image/*" onChange={handleImageChange} hidden />
+          <p className="landing__note">No sign-up required · Free to use</p>
+        </main>
+      </div>
+    )
+  }
 
-              <div className="form-grid">
-                <div className="form-field">
-                  <label className="form-label">HEIGHT (cm)</label>
-                  <input className="form-input" type="number" placeholder="예: 175" value={height} onChange={e => setHeight(e.target.value)} />
-                </div>
-                <div className="form-field">
-                  <label className="form-label">WEIGHT (kg)</label>
-                  <input className="form-input" type="number" placeholder="예: 70" value={weight} onChange={e => setWeight(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="form-field">
-                <label className="form-label">STYLE GOAL</label>
-                <select className="form-input" value={styleGoal} onChange={e => setStyleGoal(e.target.value)}>
-                  <option>Professional &amp; Sharp</option>
-                  <option>Casual &amp; Relaxed</option>
-                  <option>Trendy &amp; Bold</option>
-                  <option>Date Night</option>
-                </select>
-              </div>
-
-              <button className="submit-btn" onClick={analyzeStyle} disabled={loading}>
-                {loading ? <span className="loader" /> : <>스타일 분석 시작 →</>}
-              </button>
-            </div>
-            <div className="assessment__footer">
-              <span className="dot" /><span className="dot" /><span className="dot" />
-            </div>
+  // ── Form Page ──
+  return (
+    <div>
+      <header className="header">
+        <div className="header__top">
+          <button className="header__back" onClick={goToLanding}>
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <h1 className="header__title">AI Stylist</h1>
+          <div className="header__spacer" />
+        </div>
+        <div className="progress">
+          <div className="progress__labels">
+            <span className="progress__step">
+              {progress < 50 ? 'Step 1 of 3' : progress < 100 ? 'Step 2 of 3' : 'Step 3 of 3'}
+            </span>
+            <span className="progress__pct">{progress}% Complete</span>
           </div>
+          <div className="progress__bar">
+            <div className="progress__fill" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      </header>
 
-          {/* Result */}
-          {result && (
-            <div className="result">
-              <div className="result__top-bar" />
-              <h3 className="result__title">📋 스타일 컨설팅 보고서</h3>
-              <div className="result__body">
-                {result.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+      <main className="main">
+        <div className="section-heading">
+          <h2>Physical Profile</h2>
+          <p>Provide your details to help our AI understand your proportions for the most accurate style recommendations.</p>
+        </div>
+
+        <span className="upload-label">Full-Body Photo</span>
+        <div
+          className={`upload-zone${isDragging ? ' upload-zone--drag' : ''}${selectedImage ? ' upload-zone--filled' : ''}`}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          onClick={() => !selectedImage && fileInputRef.current?.click()}
+        >
+          {selectedImage ? (
+            <img src={selectedImage} alt="Preview" className="upload-zone__preview" />
+          ) : (
+            <div className="upload-zone__placeholder">
+              <div className="upload-zone__icon-wrap">
+                <span className="material-symbols-outlined upload-zone__icon">person_search</span>
+              </div>
+              <p className="upload-zone__title">Upload a full-body photo</p>
+              <p className="upload-zone__sub">Wear form-fitting clothes in a well-lit area for the best results.</p>
+              <div className="upload-zone__btns">
+                <button className="btn-upload-primary" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>cloud_upload</span>
+                  Choose File
+                </button>
+                <button className="btn-upload-secondary">
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>photo_camera</span>
+                  Take Photo
+                </button>
               </div>
             </div>
           )}
-        </section>
+        </div>
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} hidden />
 
-        {/* ── Footer ── */}
-        <footer className="footer">
-          <div className="footer__logo">
-            <div className="footer__logo-icon">◆</div>
-            <span className="footer__logo-text">Aura</span>
+        <div className="metrics">
+          <div>
+            <label className="field-label" htmlFor="height">Height</label>
+            <div className="input-wrap">
+              <input id="height" className="field-input" type="number" placeholder="175"
+                value={height} onChange={e => setHeight(e.target.value)} />
+              <span className="input-unit">cm</span>
+            </div>
           </div>
-          <div className="footer__links">
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Support</a>
+          <div>
+            <label className="field-label" htmlFor="weight">Weight</label>
+            <div className="input-wrap">
+              <input id="weight" className="field-input" type="number" placeholder="70"
+                value={weight} onChange={e => setWeight(e.target.value)} />
+              <span className="input-unit">kg</span>
+            </div>
           </div>
-          <p className="footer__copy">© 2025 Aura Style AI. All rights reserved.</p>
-        </footer>
+        </div>
+
+        <div className="field-group">
+          <label className="field-label">Style Goal</label>
+          <select className="field-select" value={styleGoal} onChange={e => setStyleGoal(e.target.value)}>
+            <option>Professional &amp; Sharp</option>
+            <option>Casual &amp; Relaxed</option>
+            <option>Trendy &amp; Bold</option>
+            <option>Date Night</option>
+          </select>
+        </div>
+
+        <div className="info-box">
+          <span className="material-symbols-outlined info-box__icon">info</span>
+          <div>
+            <p className="info-box__title">Why this matters?</p>
+            <p className="info-box__text">Our AI calculates your body shape and proportions to recommend cuts that flatter your specific silhouette.</p>
+          </div>
+        </div>
+
+        {result && (
+          <div className="result">
+            <div className="result__bar" />
+            <div className="result__header">
+              <span className="material-symbols-outlined">auto_awesome</span>
+              스타일 컨설팅 결과
+            </div>
+            <div className="result__body">
+              {result.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+            </div>
+            {hairstyleImage && (
+              <div className="result__hairstyle">
+                <p className="result__hairstyle-title">
+                  <span className="material-symbols-outlined">content_cut</span>
+                  추천 헤어스타일
+                </p>
+                <img src={hairstyleImage} alt="추천 헤어스타일" className="result__hairstyle-img" />
+              </div>
+            )}
+            <div className="result__footer">
+              <button className="btn-home" onClick={goToLanding}>
+                <span className="material-symbols-outlined">home</span>
+                홈으로 돌아가기
+              </button>
+            </div>
+          </div>
+        )}
       </main>
+
+      <footer className="footer">
+        <div className="footer__inner">
+          <button className="btn-generate" onClick={analyzeStyle} disabled={loading}>
+            {loading
+              ? <><span className="loader" /> 분석 중...</>
+              : <><span>Generate My Style</span><span className="material-symbols-outlined">auto_awesome</span></>
+            }
+          </button>
+        </div>
+      </footer>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
