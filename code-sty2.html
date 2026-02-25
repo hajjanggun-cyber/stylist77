@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Stylist - Physical Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#df5020",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#211511",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .custom-input-focus:focus {
+            border-color: #df5020;
+            box-shadow: 0 0 0 1px #df5020;
+            outline: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<!-- Top Navigation & Progress -->
+<header class="w-full flex flex-col pt-4 px-4 bg-background-light dark:bg-background-dark sticky top-0 z-10">
+<div class="flex items-center justify-between mb-4">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100">arrow_back</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight">AI Stylist</h1>
+<div class="w-10"></div> <!-- Spacer for symmetry -->
+</div>
+<div class="flex flex-col gap-2 mb-6">
+<div class="flex justify-between items-end">
+<span class="text-sm font-medium text-primary uppercase tracking-wider">Step 2 of 3</span>
+<span class="text-xs text-slate-500 dark:text-slate-400">66% Complete</span>
+</div>
+<div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_8px_rgba(223,80,32,0.5)]" style="width: 66%;"></div>
+</div>
+</div>
+</header>
+<main class="flex-1 px-4 pb-32">
+<div class="max-w-md mx-auto">
+<!-- Header Section -->
+<div class="mb-8">
+<h2 class="text-2xl font-bold mb-2">Physical Profile</h2>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                    Provide your details to help our AI understand your proportions for the most accurate style recommendations.
+                </p>
+</div>
+<!-- Upload Section -->
+<section class="mb-10">
+<label class="block text-sm font-bold mb-4 uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Full-Body Photo
+                </label>
+<div class="relative group">
+<div class="w-full aspect-[3/4] rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-800/30 flex flex-col items-center justify-center p-6 transition-all group-hover:border-primary/50">
+<div class="w-20 h-20 mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-4xl">person_search</span>
+</div>
+<p class="text-center font-medium mb-1">Upload a full-body photo</p>
+<p class="text-center text-xs text-slate-500 dark:text-slate-400 mb-6 max-w-[200px]">
+                            Wear form-fitting clothes in a well-lit area for the best results.
+                        </p>
+<div class="flex flex-col gap-3 w-full max-w-[200px]">
+<button class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all">
+<span class="material-symbols-outlined text-sm">cloud_upload</span>
+                                Choose File
+                            </button>
+<button class="bg-transparent border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all">
+<span class="material-symbols-outlined text-sm">photo_camera</span>
+                                Take Photo
+                            </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Metrics Form -->
+<section class="grid grid-cols-2 gap-4 mb-8">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide" for="height">Height</label>
+<div class="relative">
+<input class="w-full bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-lg py-4 px-4 pr-12 text-lg font-bold custom-input-focus transition-all" id="height" placeholder="175" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">cm</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide" for="weight">Weight</label>
+<div class="relative">
+<input class="w-full bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-lg py-4 px-4 pr-12 text-lg font-bold custom-input-focus transition-all" id="weight" placeholder="70" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">kg</span>
+</div>
+</div>
+</section>
+<!-- Quick Tips -->
+<div class="bg-primary/5 rounded-xl p-4 border border-primary/10 mb-8">
+<div class="flex gap-3">
+<span class="material-symbols-outlined text-primary">info</span>
+<div>
+<p class="text-sm font-bold text-primary mb-1">Why this matters?</p>
+<p class="text-xs text-slate-600 dark:text-slate-400 leading-normal">
+                            Our AI calculates your body shape and proportions to recommend cuts that flatter your specific silhouette.
+                        </p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Action -->
+<footer class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-background-dark/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800">
+<div class="max-w-md mx-auto">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-extrabold text-lg py-4 rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-[0.98]">
+                Generate My Style
+                <span class="material-symbols-outlined">auto_awesome</span>
+</button>
+</div>
+</footer>
+</body></html>

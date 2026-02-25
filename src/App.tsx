@@ -2,12 +2,27 @@ import { useState, useRef } from 'react'
 import './App.css'
 
 type Page = 'landing' | 'form'
+type StyleGoalId = 'casual' | 'formal' | 'trendy' | 'date'
+
+interface StyleGoalOption {
+  id: StyleGoalId
+  icon: string
+  label: string
+  value: string
+}
+
+const STYLE_GOALS: StyleGoalOption[] = [
+  { id: 'casual', icon: 'check_circle', label: '캐주얼', value: '캐주얼 & 편안함' },
+  { id: 'formal', icon: 'business_center', label: '포멀', value: '프로페셔널 & 샤프' },
+  { id: 'trendy', icon: 'auto_awesome', label: '트렌디', value: '트렌디 & 볼드' },
+  { id: 'date', icon: 'favorite', label: '데이트', value: '데이트룩' },
+]
 
 function App() {
   const [page, setPage] = useState<Page>('landing')
   const [height, setHeight] = useState('')
   const [weight, setWeight] = useState('')
-  const [styleGoal, setStyleGoal] = useState('Professional & Sharp')
+  const [styleGoal, setStyleGoal] = useState<StyleGoalId>('casual')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -48,10 +63,11 @@ function App() {
     setResult('')
     setHairstyleImage(null)
     try {
+      const selectedGoal = STYLE_GOALS.find(g => g.id === styleGoal)?.value ?? '캐주얼 & 편안함'
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ height, weight, styleGoal, imageBase64: selectedImage || undefined }),
+        body: JSON.stringify({ height, weight, styleGoal: selectedGoal, imageBase64: selectedImage || undefined }),
       })
       const data = await response.json() as { result?: string; error?: string; hairstyleImage?: string }
       if (!response.ok || data.error) { setResult(`오류: ${data.error || '알 수 없는 오류'}`); return }
@@ -64,161 +80,172 @@ function App() {
     }
   }
 
-  const progress = height && weight ? (selectedImage ? 100 : 66) : 33
-
   // ── Landing Page ──
   if (page === 'landing') {
     return (
-      <div className="landing">
-        <div className="landing__bg-glow" />
+      <div className="app">
+        <div className="landing">
+          <div className="landing__glow" />
 
-        <header className="landing__header">
-          <div className="landing__logo">
-            <span className="material-symbols-outlined landing__logo-icon">styler</span>
+          <header className="landing__header">
+            <div className="landing__logo-wrap">
+              <span className="material-symbols-outlined landing__logo-icon">styler</span>
+            </div>
             <span className="landing__logo-text">AI Stylist</span>
-          </div>
-        </header>
+          </header>
 
-        <main className="landing__main">
-          <div className="landing__badge">
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>auto_awesome</span>
-            AI-Powered Style Engine
-          </div>
+          <main className="landing__main">
+            <div className="landing__badge">
+              <span className="material-symbols-outlined" style={{ fontSize: 13 }}>auto_awesome</span>
+              AI 기반 퍼스널 스타일링
+            </div>
 
-          <h1 className="landing__title">
-            Discover Your <span className="landing__title-accent">Perfect Style</span>
-          </h1>
+            <h1 className="landing__title">
+              나만의 완벽한<br />
+              <span className="landing__title-accent">스타일을 찾아보세요</span>
+            </h1>
 
-          <p className="landing__desc">
-            Upload your photo, share your measurements, and let our AI craft a personalized style report tailored just for you.
-          </p>
+            <p className="landing__desc">
+              사진을 업로드하고 신체 정보를 입력하면,<br />
+              AI가 당신만을 위한 맞춤 스타일 보고서와<br />
+              추천 헤어스타일을 제공합니다.
+            </p>
 
-          <div className="landing__features">
-            {[
-              { icon: 'body_system', label: 'Body Shape Analysis' },
-              { icon: 'palette', label: 'Color Palette' },
-              { icon: 'content_cut', label: 'Hair Recommendations' },
-            ].map(f => (
-              <div className="landing__feature" key={f.label}>
-                <span className="material-symbols-outlined landing__feature-icon">{f.icon}</span>
-                <span className="landing__feature-label">{f.label}</span>
-              </div>
-            ))}
-          </div>
+            <div className="landing__features">
+              {[
+                { icon: 'body_system', label: '체형 분석' },
+                { icon: 'palette', label: '컬러 팔레트' },
+                { icon: 'content_cut', label: '헤어 추천' },
+              ].map(f => (
+                <div className="landing__feature" key={f.label}>
+                  <div className="landing__feature-icon-wrap">
+                    <span className="material-symbols-outlined">{f.icon}</span>
+                  </div>
+                  <span className="landing__feature-label">{f.label}</span>
+                </div>
+              ))}
+            </div>
 
-          <button className="landing__cta" onClick={() => setPage('form')}>
-            Start My Style Analysis
-            <span className="material-symbols-outlined">arrow_forward</span>
-          </button>
+            <button className="landing__cta" onClick={() => setPage('form')}>
+              스타일 분석 시작하기
+              <span className="material-symbols-outlined">arrow_forward</span>
+            </button>
 
-          <p className="landing__note">No sign-up required · Free to use</p>
-        </main>
+            <p className="landing__note">회원가입 불필요 · 무료 이용</p>
+          </main>
+        </div>
       </div>
     )
   }
 
-  // ── Form Page ──
+  // ── Form / Result Page ──
   return (
-    <div>
+    <div className="app">
       <header className="header">
-        <div className="header__top">
-          <button className="header__back" onClick={goToLanding}>
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          <h1 className="header__title">AI Stylist</h1>
-          <div className="header__spacer" />
-        </div>
-        <div className="progress">
-          <div className="progress__labels">
-            <span className="progress__step">
-              {progress < 50 ? 'Step 1 of 3' : progress < 100 ? 'Step 2 of 3' : 'Step 3 of 3'}
-            </span>
-            <span className="progress__pct">{progress}% Complete</span>
-          </div>
-          <div className="progress__bar">
-            <div className="progress__fill" style={{ width: `${progress}%` }} />
-          </div>
-        </div>
+        <button className="header__back" onClick={goToLanding} aria-label="뒤로가기">
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h2 className="header__title">스타일 분석</h2>
+        <div className="header__spacer" />
       </header>
 
       <main className="main">
-        <div className="section-heading">
-          <h2>Physical Profile</h2>
-          <p>Provide your details to help our AI understand your proportions for the most accurate style recommendations.</p>
-        </div>
+        {/* Title */}
+        <section className="section-hero">
+          <h1 className="section-hero__title">나의 실루엣<br />분석하기</h1>
+          <p className="section-hero__sub">
+            AI가 체형과 비율을 분석하여 나에게 딱 맞는<br />
+            스타일과 헤어스타일을 추천해드립니다.
+          </p>
+        </section>
 
-        <span className="upload-label">Full-Body Photo</span>
-        <div
-          className={`upload-zone${isDragging ? ' upload-zone--drag' : ''}${selectedImage ? ' upload-zone--filled' : ''}`}
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-          onClick={() => !selectedImage && fileInputRef.current?.click()}
-        >
-          {selectedImage ? (
-            <img src={selectedImage} alt="Preview" className="upload-zone__preview" />
-          ) : (
-            <div className="upload-zone__placeholder">
-              <div className="upload-zone__icon-wrap">
-                <span className="material-symbols-outlined upload-zone__icon">person_search</span>
-              </div>
-              <p className="upload-zone__title">Upload a full-body photo</p>
-              <p className="upload-zone__sub">Wear form-fitting clothes in a well-lit area for the best results.</p>
-              <div className="upload-zone__btns">
-                <button className="btn-upload-primary" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>cloud_upload</span>
-                  Choose File
+        {/* Upload Zone */}
+        <section className="section-upload">
+          <div
+            className={`upload-zone${isDragging ? ' upload-zone--drag' : ''}${selectedImage ? ' upload-zone--filled' : ''}`}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onClick={() => !selectedImage && fileInputRef.current?.click()}
+          >
+            {selectedImage ? (
+              <>
+                <img src={selectedImage} alt="미리보기" className="upload-zone__preview" />
+                <button
+                  className="upload-zone__remove"
+                  onClick={(e) => { e.stopPropagation(); setSelectedImage(null) }}
+                  aria-label="사진 제거"
+                >
+                  <span className="material-symbols-outlined">close</span>
                 </button>
-                <button className="btn-upload-secondary">
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>photo_camera</span>
-                  Take Photo
+              </>
+            ) : (
+              <>
+                <div className="upload-zone__icon-wrap">
+                  <span className="material-symbols-outlined upload-zone__icon">photo_camera</span>
+                </div>
+                <p className="upload-zone__title">전신 사진을 업로드해주세요</p>
+                <p className="upload-zone__sub">탭하거나 드래그하여 업로드</p>
+                <button
+                  className="upload-zone__btn"
+                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
+                >
+                  사진 선택
                 </button>
-              </div>
-            </div>
-          )}
-        </div>
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} hidden />
+              </>
+            )}
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} hidden />
+        </section>
 
-        <div className="metrics">
-          <div>
-            <label className="field-label" htmlFor="height">Height</label>
-            <div className="input-wrap">
-              <input id="height" className="field-input" type="number" placeholder="175"
-                value={height} onChange={e => setHeight(e.target.value)} />
-              <span className="input-unit">cm</span>
+        {/* Height & Weight */}
+        <section className="section-metrics">
+          <div className="metrics-grid">
+            <div className="metric-field">
+              <label className="metric-label" htmlFor="height">키 (cm)</label>
+              <input
+                id="height"
+                className="metric-input"
+                type="number"
+                placeholder="175"
+                value={height}
+                onChange={e => setHeight(e.target.value)}
+              />
+            </div>
+            <div className="metric-field">
+              <label className="metric-label" htmlFor="weight">몸무게 (kg)</label>
+              <input
+                id="weight"
+                className="metric-input"
+                type="number"
+                placeholder="70"
+                value={weight}
+                onChange={e => setWeight(e.target.value)}
+              />
             </div>
           </div>
-          <div>
-            <label className="field-label" htmlFor="weight">Weight</label>
-            <div className="input-wrap">
-              <input id="weight" className="field-input" type="number" placeholder="70"
-                value={weight} onChange={e => setWeight(e.target.value)} />
-              <span className="input-unit">kg</span>
-            </div>
+        </section>
+
+        {/* Style Goal */}
+        <section className="section-goal">
+          <label className="goal-label">스타일 목표</label>
+          <div className="goal-grid">
+            {STYLE_GOALS.map(g => (
+              <button
+                key={g.id}
+                className={`goal-btn${styleGoal === g.id ? ' goal-btn--active' : ''}`}
+                onClick={() => setStyleGoal(g.id)}
+              >
+                <span className="material-symbols-outlined goal-btn__icon">{g.icon}</span>
+                <span className="goal-btn__label">{g.label}</span>
+              </button>
+            ))}
           </div>
-        </div>
+        </section>
 
-        <div className="field-group">
-          <label className="field-label">Style Goal</label>
-          <select className="field-select" value={styleGoal} onChange={e => setStyleGoal(e.target.value)}>
-            <option>Professional &amp; Sharp</option>
-            <option>Casual &amp; Relaxed</option>
-            <option>Trendy &amp; Bold</option>
-            <option>Date Night</option>
-          </select>
-        </div>
-
-        <div className="info-box">
-          <span className="material-symbols-outlined info-box__icon">info</span>
-          <div>
-            <p className="info-box__title">Why this matters?</p>
-            <p className="info-box__text">Our AI calculates your body shape and proportions to recommend cuts that flatter your specific silhouette.</p>
-          </div>
-        </div>
-
+        {/* Result */}
         {result && (
-          <div className="result">
-            <div className="result__bar" />
+          <section className="section-result">
             <div className="result__header">
               <span className="material-symbols-outlined">auto_awesome</span>
               스타일 컨설팅 결과
@@ -230,31 +257,47 @@ function App() {
               <div className="result__hairstyle">
                 <p className="result__hairstyle-title">
                   <span className="material-symbols-outlined">content_cut</span>
-                  추천 헤어스타일
+                  추천 헤어스타일 9종
                 </p>
                 <img src={hairstyleImage} alt="추천 헤어스타일" className="result__hairstyle-img" />
               </div>
             )}
-            <div className="result__footer">
-              <button className="btn-home" onClick={goToLanding}>
-                <span className="material-symbols-outlined">home</span>
-                홈으로 돌아가기
-              </button>
-            </div>
-          </div>
+          </section>
         )}
-      </main>
 
-      <footer className="footer">
-        <div className="footer__inner">
-          <button className="btn-generate" onClick={analyzeStyle} disabled={loading}>
+        {/* Analyze Button */}
+        <section className="section-cta">
+          <button className="cta-btn" onClick={analyzeStyle} disabled={loading}>
             {loading
-              ? <><span className="loader" /> 분석 중...</>
-              : <><span>Generate My Style</span><span className="material-symbols-outlined">auto_awesome</span></>
+              ? <><span className="loader" />&nbsp;분석 중...</>
+              : '스타일 분석하기'
             }
           </button>
-        </div>
-      </footer>
+          <p className="cta-note">
+            분석 버튼을 클릭하면 AI 분석 서비스 이용약관에 동의하는 것으로 간주됩니다.
+          </p>
+        </section>
+      </main>
+
+      {/* Bottom Nav */}
+      <nav className="bottom-nav">
+        <a className="bottom-nav__item" href="#" onClick={(e) => { e.preventDefault(); goToLanding() }}>
+          <span className="material-symbols-outlined">home</span>
+          <span className="bottom-nav__label">홈</span>
+        </a>
+        <a className="bottom-nav__item bottom-nav__item--active" href="#">
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
+          <span className="bottom-nav__label">분석</span>
+        </a>
+        <a className="bottom-nav__item" href="#">
+          <span className="material-symbols-outlined">checkroom</span>
+          <span className="bottom-nav__label">옷장</span>
+        </a>
+        <a className="bottom-nav__item" href="#">
+          <span className="material-symbols-outlined">person</span>
+          <span className="bottom-nav__label">프로필</span>
+        </a>
+      </nav>
     </div>
   )
 }

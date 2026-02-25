@@ -54,34 +54,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                 content: [
                     {
                         type: "input_text",
-                        text: `You are a professional personal stylist with 10 years of experience. Based on the user's body information and provided photo, generate a concrete and practical style consulting report. The report must clearly separate and address the following items:
+                        text: `당신은 10년 경력의 전문 퍼스널 스타일리스트입니다.
+사용자의 신체 정보와 사진을 바탕으로 구체적이고 실용적인 스타일 컨설팅 보고서를 작성해주세요.
+보고서는 다음 항목을 포함해야 합니다:
+1. 체형 분석
+2. 어울리는 스타일 키워드 (3~5개)
+3. 추천 상의 스타일
+4. 추천 하의 스타일
+5. 추천 아우터
+6. 피해야 할 스타일
+7. 컬러 팔레트 추천
+8. 종합 스타일링 팁
 
-1. Body Shape Analysis (체형 분석): Provide detailed observations and reasoning based on the user's body data and photo before offering any analytic conclusion.
-2. Suitable Style Keywords (어울리는 스타일 키워드, 3~5개): After analyzing, select 3-5 concise keywords that encapsulate the user's best style directions, making sure the reasoning precedes the keywords.
-3. Recommended Tops (추천 상의 스타일): Support the recommendations by explaining why these tops suit the user's body type, then provide the list at the end.
-4. Recommended Bottoms (추천 하의 스타일): Use analysis first, then conclude with specific styles that flatter the user.
-5. Recommended Outerwear (추천 아우터): Reason about the user's silhouette and needs, and then suggest precise outerwear examples.
-6. Styles to Avoid (피해야 할 스타일): First reason why certain styles are less suitable for the user's characteristics, and then list what should be avoided.
-7. Recommended Color Palette (컬러 팔레트 추천): Reason about tone, contrast, and associated factors, then close with the recommended color palette.
-8. Comprehensive Styling Tips (종합 스타일링 팁): Summarize and synthesize the above insights, ensuring initial reasoning steps are presented and a clear practical tip list concludes this section.
-
-**Guidelines:**
-- For every section, reasoning must precede conclusions, suggestions, keywords, or lists. Explicitly avoid giving conclusions or recommendations before showing your analysis.
-- Organize the report with clear bold section headers and numbered items matching the above list.
-- Be specific and actionable in all recommendations.
-- If the user data or photo is ambiguous or unclear, note any assumptions you must make.
-- All output should be in Korean.
-- The response should be structured as a well-formatted markdown document, with each section separated and clearly titled.
-- Length: Each section should be at least 2-3 sentences, with keywords and item lists separated for clarity.
-
-**REMEMBER:**
-- Begin each section with reasoning/observation, with the conclusion, keywords, or recommendations last.
-- Keep all responses in clear, professional Korean.
-- Use at least 2-3 sentences per section.
-- Output the response as a structured, clearly formatted markdown article addressed to the client.
-
-**Important Objective Reminder:**
-For each numbered item, provide reasoning and observations FIRST, with any conclusions or lists LAST. Respond in professional Korean, using section headers, in markdown, with actionable and specific advice.`,
+각 항목을 명확하게 구분하여 작성해주세요.`,
                     },
                 ],
             },
@@ -130,6 +115,7 @@ For each numbered item, provide reasoning and observations FIRST, with any concl
                 max_output_tokens: 2048,
                 top_p: 1,
                 store: true,
+                include: ["web_search_call.action.sources"],
             }),
         });
 
@@ -139,7 +125,7 @@ For each numbered item, provide reasoning and observations FIRST, with any concl
             const imageBlob = dataURLtoBlob(imageBase64);
             const formData = new FormData();
             formData.append('image', imageBlob, 'photo.png');
-            formData.append('prompt', '너는 최고의 헤어스타일리스타야. 첨부한 사진과 어울리는 헤어스타일로 바꿔줘');
+            formData.append('prompt', '너는 최고의 헤어스타일리스트야. 3x3 그리드로, 어떤 헤어스타일인지 설명과 함께 첨부한 사진 속 사람이랑 최고로 잘 어울리는 헤어스타일 9개 생성해줘. 단 첨부한 사람의 얼굴은 절대 바꾸지말고 기존 얼굴 그대로 유지하고 헤어스타일만 바꿔.');
             formData.append('model', 'gpt-image-1.5');
             formData.append('n', '1');
             formData.append('size', '1024x1024');
