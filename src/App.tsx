@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import html2canvas from 'html2canvas'
 import './App.css'
 
 type Page = 'landing' | 'form'
@@ -28,7 +29,60 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState('')
   const [hairstyleImage, setHairstyleImage] = useState<string | null>(null)
+  const [hasPaid, setHasPaid] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [analysisSuccess, setAnalysisSuccess] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const resultRef = useRef<HTMLElement>(null)
+  // 결제 후 자동 분석을 위해 복원된 폼 데이터를 ref로 보관
+  const pendingAnalysisRef = useRef<{ height: string; weight: string; styleGoal: StyleGoalId } | null>(null)
+
+  // 앱 시작 시: localStorage 확인 + 결제 후 리다이렉트 처리
+  useEffect(() => {
+    const paid = localStorage.getItem('aura_paid') === 'true'
+    if (paid) { setHasPaid(true) }
+
+    const params = new URLSearchParams(window.location.search)
+    const checkoutId = params.get('checkout_id')
+    if (!checkoutId) return
+
+    setVerifying(true)
+    fetch(`/api/verify-checkout?checkout_id=${checkoutId}`)
+      .then(r => r.json())
+      .then((data: { paid: boolean; orderId?: string }) => {
+        if (!data.paid) return
+        localStorage.setItem('aura_paid', 'true')
+        if (data.orderId) localStorage.setItem('aura_order_id', data.orderId)
+        window.history.replaceState({}, '', '/')
+
+        // 결제 전 저장해둔 폼 데이터 복원
+        const raw = localStorage.getItem('aura_pending_form')
+        if (raw) {
+          try {
+            const saved = JSON.parse(raw) as { height: string; weight: string; styleGoal: StyleGoalId }
+            setHeight(saved.height)
+            setWeight(saved.weight)
+            setStyleGoal(saved.styleGoal)
+            localStorage.removeItem('aura_pending_form')
+            pendingAnalysisRef.current = saved // 자동 분석 트리거용
+          } catch {}
+        }
+        setHasPaid(true) // 이 시점에 아래 useEffect가 실행됨
+      })
+      .catch(() => {})
+      .finally(() => setVerifying(false))
+  }, [])
+
+  // hasPaid가 true가 되고 pendingAnalysisRef에 데이터가 있으면 자동 분석 실행
+  useEffect(() => {
+    if (!hasPaid || !pendingAnalysisRef.current) return
+    const saved = pendingAnalysisRef.current
+    pendingAnalysisRef.current = null
+    setPage('form')
+    runAnalysis(saved.height, saved.weight, saved.styleGoal, null)
+  }, [hasPaid])
 
   const goToLanding = () => {
     setPage('landing')
@@ -37,6 +91,7 @@ function App() {
     setHeight('')
     setWeight('')
     setSelectedImage(null)
+    setAnalysisSuccess(false)
   }
 
   const processFile = (file: File) => {
@@ -57,27 +112,138 @@ function App() {
     if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0])
   }
 
-  const analyzeStyle = async () => {
-    if (!height || !weight) { alert('키와 몸무게를 입력해주세요!'); return }
+  const triggerRefund = async () => {
+    const orderId = localStorage.getItem('aura_order_id')
+    if (!orderId) return
+    try {
+      const res = await fetch('/api/refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      })
+      const data = await res.json() as { success?: boolean }
+      if (data.success) {
+        localStorage.removeItem('aura_paid')
+        localStorage.removeItem('aura_order_id')
+        setHasPaid(false)
+        setResult('분석 서비스 오류로 자동 환불 처리되었습니다.\n다시 분석을 시도해주세요.')
+      }
+    } catch {}
+  }
+
+  // 실제 분석 API 호출 (state와 독립적으로 값을 직접 받음)
+  const runAnalysis = async (h: string, w: string, sg: StyleGoalId, img: string | null) => {
     setLoading(true)
     setResult('')
     setHairstyleImage(null)
     try {
-      const selectedGoal = STYLE_GOALS.find(g => g.id === styleGoal)?.value ?? '캐주얼 & 편안함'
+      const goalValue = STYLE_GOALS.find(g => g.id === sg)?.value ?? '캐주얼 & 편안함'
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ height, weight, styleGoal: selectedGoal, imageBase64: selectedImage || undefined }),
+        body: JSON.stringify({ height: h, weight: w, styleGoal: goalValue, imageBase64: img || undefined }),
       })
       const data = await response.json() as { result?: string; error?: string; hairstyleImage?: string }
-      if (!response.ok || data.error) { setResult(`오류: ${data.error || '알 수 없는 오류'}`); return }
+      if (!response.ok || data.error) {
+        setResult(`오류: ${data.error || '알 수 없는 오류'}`)
+        await triggerRefund()
+        return
+      }
       setResult(data.result || '분석 결과가 없습니다.')
       setHairstyleImage(data.hairstyleImage || null)
+      setAnalysisSuccess(true)
     } catch {
-      setResult('네트워크 오류가 발생했습니다. 다시 시도해주세요.')
+      setResult('네트워크 오류가 발생했습니다.')
+      setAnalysisSuccess(false)
+      await triggerRefund()
     } finally {
       setLoading(false)
     }
+  }
+
+  const saveAsImage = async () => {
+    if (!resultRef.current) return
+    setSaving(true)
+    try {
+      const canvas = await html2canvas(resultRef.current, {
+        backgroundColor: '#10221d',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      })
+      const link = document.createElement('a')
+      link.download = 'aura-style-report.png'
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } catch (e) {
+      console.error('Save failed:', e)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const shareResult = async () => {
+    if (!resultRef.current) return
+    setSharing(true)
+    try {
+      const canvas = await html2canvas(resultRef.current, {
+        backgroundColor: '#10221d',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      })
+      canvas.toBlob(async (blob) => {
+        if (!blob) { setSharing(false); return }
+        const file = new File([blob], 'aura-style-report.png', { type: 'image/png' })
+        try {
+          if (navigator.share && navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ title: 'Aura AI 스타일 리포트', text: '나만의 AI 퍼스널 스타일 분석 결과!', files: [file] })
+          } else if (navigator.share) {
+            await navigator.share({ title: 'Aura AI 스타일 리포트', text: result })
+          } else {
+            await navigator.clipboard.writeText(result)
+            alert('결과가 클립보드에 복사되었습니다.')
+          }
+        } catch {}
+        setSharing(false)
+      })
+    } catch {
+      setSharing(false)
+    }
+  }
+
+  // 분석 버튼 클릭: 미결제 → 결제 흐름, 결제 완료 → 분석 실행
+  const analyzeStyle = async () => {
+    if (!height || !weight) { alert('키와 몸무게를 입력해주세요!'); return }
+
+    if (!hasPaid) {
+      // 폼 데이터 저장 후 결제 페이지로 이동
+      localStorage.setItem('aura_pending_form', JSON.stringify({ height, weight, styleGoal }))
+      setLoading(true)
+      try {
+        const successUrl = `${window.location.origin}/?checkout_id={CHECKOUT_ID}`
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ successUrl }),
+        })
+        const data = await res.json() as { checkoutUrl?: string; error?: string }
+        if (data.checkoutUrl) {
+          window.location.href = data.checkoutUrl
+        } else {
+          alert('결제 페이지 이동 중 오류가 발생했습니다.')
+          setLoading(false)
+        }
+      } catch {
+        alert('결제 페이지 이동 중 오류가 발생했습니다.')
+        setLoading(false)
+      }
+      return
+    }
+
+    await runAnalysis(height, weight, styleGoal, selectedImage)
   }
 
   // ── Landing Page ──
@@ -126,12 +292,27 @@ function App() {
               ))}
             </div>
 
-            <button className="landing__cta" onClick={() => setPage('form')}>
-              스타일 분석 시작하기
-              <span className="material-symbols-outlined">arrow_forward</span>
-            </button>
+            {verifying ? (
+              <button className="landing__cta" disabled>
+                <span className="loader" />&nbsp;결제 확인 중...
+              </button>
+            ) : (
+              <button className="landing__cta" onClick={() => setPage('form')}>
+                스타일 분석 시작하기
+                <span className="material-symbols-outlined">arrow_forward</span>
+              </button>
+            )}
 
-            <p className="landing__note">회원가입 불필요 · 무료 이용</p>
+            <p className="landing__note">정보 입력 후 결제 · 회원가입 불필요</p>
+
+            {hasPaid && (
+              <button
+                style={{ marginTop: 8, background: 'none', border: 'none', color: '#888', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
+                onClick={() => { localStorage.clear(); location.reload() }}
+              >
+                결제 초기화 (테스트용)
+              </button>
+            )}
           </main>
         </div>
       </div>
@@ -245,7 +426,7 @@ function App() {
 
         {/* Result */}
         {result && (
-          <section className="section-result">
+          <section ref={resultRef} className="section-result">
             <div className="result__header">
               <span className="material-symbols-outlined">auto_awesome</span>
               스타일 컨설팅 결과
@@ -265,16 +446,34 @@ function App() {
           </section>
         )}
 
+        {/* Save & Share */}
+        {analysisSuccess && (
+          <section className="result-actions">
+            <button className="result-action-btn" onClick={saveAsImage} disabled={saving || sharing}>
+              <span className="material-symbols-outlined">download</span>
+              {saving ? '저장 중...' : '이미지 저장'}
+            </button>
+            <button className="result-action-btn result-action-btn--share" onClick={shareResult} disabled={saving || sharing}>
+              <span className="material-symbols-outlined">share</span>
+              {sharing ? '공유 중...' : '공유하기'}
+            </button>
+          </section>
+        )}
+
         {/* Analyze Button */}
         <section className="section-cta">
           <button className="cta-btn" onClick={analyzeStyle} disabled={loading}>
             {loading
-              ? <><span className="loader" />&nbsp;분석 중...</>
-              : '스타일 분석하기'
+              ? <><span className="loader" />&nbsp;{hasPaid ? '분석 중...' : '결제 페이지 이동 중...'}</>
+              : hasPaid
+                ? '스타일 분석하기'
+                : '결제 후 분석하기 · $3.99'
             }
           </button>
           <p className="cta-note">
-            분석 버튼을 클릭하면 AI 분석 서비스 이용약관에 동의하는 것으로 간주됩니다.
+            {hasPaid
+              ? '분석 버튼을 클릭하면 AI 분석 서비스 이용약관에 동의하는 것으로 간주됩니다.'
+              : '키와 몸무게 입력 후 결제가 진행됩니다. 분석 실패 시 자동 환불됩니다.'}
           </p>
         </section>
       </main>

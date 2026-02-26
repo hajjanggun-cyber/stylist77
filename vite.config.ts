@@ -168,6 +168,128 @@ export default defineConfig({
             }
           })
         })
+        // ── Polar Checkout ──
+        server.middlewares.use('/api/checkout', (req, res) => {
+          if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
+          if (req.method !== 'POST') { res.writeHead(405); res.end(); return }
+          const vars = loadDevVars()
+          const polarToken = vars.POLAR_ACCESS_TOKEN
+          let body = ''
+          req.on('data', chunk => { body += chunk })
+          req.on('end', async () => {
+            try {
+              const { successUrl } = JSON.parse(body)
+              const polarRes = await fetch('https://sandbox-api.polar.sh/v1/checkouts/', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${polarToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  product_id: '540885e1-0cb7-439f-a2aa-07bd02a8604a',
+                  success_url: successUrl,
+                }),
+              })
+              const data = await polarRes.json() as { url?: string }
+              if (!polarRes.ok) {
+                res.writeHead(polarRes.status, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ error: '결제 세션 생성 실패' }))
+                return
+              }
+              res.writeHead(200, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ checkoutUrl: data.url }))
+            } catch (e) {
+              console.error('Checkout error:', e)
+              res.writeHead(500, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ error: '서버 오류' }))
+            }
+          })
+        })
+
+        // ── Polar Verify Checkout ──
+        server.middlewares.use('/api/verify-checkout', (req, res) => {
+          if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
+          const vars = loadDevVars()
+          const polarToken = vars.POLAR_ACCESS_TOKEN
+          const qs = (req.url || '').split('?')[1] || ''
+          const params = new URLSearchParams(qs)
+          const checkoutId = params.get('checkout_id')
+          if (!checkoutId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: 'checkout_id required' }))
+            return
+          }
+          ;(async () => {
+            try {
+              // 1) checkout 상태 확인
+              const checkoutRes = await fetch(`https://sandbox-api.polar.sh/v1/checkouts/${checkoutId}`, {
+                headers: { 'Authorization': `Bearer ${polarToken}` },
+              })
+              const checkout = await checkoutRes.json() as {
+                status?: string
+                order?: { id: string }
+                order_id?: string
+              }
+              const confirmed = checkout.status === 'confirmed' || checkout.status === 'succeeded'
+              if (!confirmed) {
+                res.writeHead(200, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ paid: false }))
+                return
+              }
+              // 2) order_id 추출 후 order 실제 확인
+              const orderId = checkout.order?.id ?? checkout.order_id
+              if (!orderId) {
+                res.writeHead(200, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ paid: true, orderId: null }))
+                return
+              }
+              const orderRes = await fetch(`https://sandbox-api.polar.sh/v1/orders/${orderId}`, {
+                headers: { 'Authorization': `Bearer ${polarToken}` },
+              })
+              const order = await orderRes.json() as { id: string; status?: string }
+              res.writeHead(200, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ paid: true, orderId: order.id }))
+            } catch {
+              res.writeHead(500, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ error: 'verify failed' }))
+            }
+          })()
+        })
+
+        // ── Polar Refund ──
+        server.middlewares.use('/api/refund', (req, res) => {
+          if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
+          if (req.method !== 'POST') { res.writeHead(405); res.end(); return }
+          const vars = loadDevVars()
+          const polarToken = vars.POLAR_ACCESS_TOKEN
+          let body = ''
+          req.on('data', chunk => { body += chunk })
+          req.on('end', async () => {
+            try {
+              const { orderId } = JSON.parse(body)
+              const refundRes = await fetch('https://sandbox-api.polar.sh/v1/refunds/', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${polarToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ order_id: orderId, reason: 'service_unavailable' }),
+              })
+              if (!refundRes.ok) {
+                const err = await refundRes.json()
+                res.writeHead(refundRes.status, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ error: '환불 처리 실패', detail: err }))
+                return
+              }
+              res.writeHead(200, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ success: true }))
+            } catch (e) {
+              console.error('Refund error:', e)
+              res.writeHead(500, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ error: '서버 오류' }))
+            }
+          })
+        })
       }
     }
   ],
