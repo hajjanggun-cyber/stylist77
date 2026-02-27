@@ -465,11 +465,25 @@ function App() {
               <span className="material-symbols-outlined">share</span>
               {sharing ? '공유 중...' : '공유하기'}
             </button>
+            <button
+              className="result-action-btn"
+              style={{ gridColumn: '1 / -1', background: 'none', border: '1px solid #444', color: '#aaa' }}
+              onClick={() => {
+                localStorage.removeItem('aura_paid')
+                localStorage.removeItem('aura_order_id')
+                setHasPaid(false)
+                goToLanding()
+              }}
+              disabled={saving || sharing}
+            >
+              <span className="material-symbols-outlined">home</span>
+              처음으로 돌아가기
+            </button>
           </section>
         )}
 
         {/* Analyze Button */}
-        <section className="section-cta">
+        {!analysisSuccess && <section className="section-cta">
           <button className="cta-btn" onClick={analyzeStyle} disabled={loading}>
             {loading
               ? <><span className="loader" />&nbsp;{hasPaid ? '분석 중...' : '결제 페이지 이동 중...'}</>
@@ -483,7 +497,7 @@ function App() {
               ? '분석 버튼을 클릭하면 AI 분석 서비스 이용약관에 동의하는 것으로 간주됩니다.'
               : '키와 몸무게 입력 후 결제가 진행됩니다. 분석 실패 시 자동 환불됩니다.'}
           </p>
-        </section>
+        </section>}
       </main>
 
       {/* Bottom Nav */}
