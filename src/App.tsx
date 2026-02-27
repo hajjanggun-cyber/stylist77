@@ -313,6 +313,12 @@ function App() {
 
             <p className="landing__note">정보 입력 후 결제 · 회원가입 불필요</p>
 
+            <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a href="/terms.html" style={{ fontSize: 12, color: '#4a7a5a', textDecoration: 'underline' }}>서비스 약관</a>
+              <a href="/refund.html" style={{ fontSize: 12, color: '#4a7a5a', textDecoration: 'underline' }}>환불 규정</a>
+              <a href="/privacy.html" style={{ fontSize: 12, color: '#4a7a5a', textDecoration: 'underline' }}>개인정보 처리방침</a>
+            </div>
+
             {hasPaid && (
               <button
                 style={{ marginTop: 8, background: 'none', border: 'none', color: '#888', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
