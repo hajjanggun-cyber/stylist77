@@ -2,12 +2,12 @@ interface Env {
   POLAR_ACCESS_TOKEN: string
 }
 
-const PRODUCT_ID = '540885e1-0cb7-439f-a2aa-07bd02a8604a'
+const PRODUCT_ID = 'fb0254ae-b35b-4d1c-b5e9-56834f3fd3ff'
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const { successUrl } = await ctx.request.json<{ successUrl: string }>()
 
-  const polarRes = await fetch('https://sandbox-api.polar.sh/v1/checkouts/', {
+  const polarRes = await fetch('https://api.polar.sh/v1/checkouts/', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${ctx.env.POLAR_ACCESS_TOKEN}`,
