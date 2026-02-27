@@ -37,7 +37,7 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const resultRef = useRef<HTMLElement>(null)
   // 결제 후 자동 분석을 위해 복원된 폼 데이터를 ref로 보관
-  const pendingAnalysisRef = useRef<{ height: string; weight: string; styleGoal: StyleGoalId } | null>(null)
+  const pendingAnalysisRef = useRef<{ height: string; weight: string; styleGoal: StyleGoalId; image: string | null } | null>(null)
 
   // 앱 시작 시: localStorage 확인 + 결제 후 리다이렉트 처리
   useEffect(() => {
@@ -66,7 +66,12 @@ function App() {
             setWeight(saved.weight)
             setStyleGoal(saved.styleGoal)
             localStorage.removeItem('aura_pending_form')
-            pendingAnalysisRef.current = saved // 자동 분석 트리거용
+            const savedImage = localStorage.getItem('aura_pending_image')
+            if (savedImage) {
+              setSelectedImage(savedImage)
+              localStorage.removeItem('aura_pending_image')
+            }
+            pendingAnalysisRef.current = { ...saved, image: savedImage } // 자동 분석 트리거용
           } catch {}
         }
         setHasPaid(true) // 이 시점에 아래 useEffect가 실행됨
@@ -81,7 +86,7 @@ function App() {
     const saved = pendingAnalysisRef.current
     pendingAnalysisRef.current = null
     setPage('form')
-    runAnalysis(saved.height, saved.weight, saved.styleGoal, null)
+    runAnalysis(saved.height, saved.weight, saved.styleGoal, saved.image)
   }, [hasPaid])
 
   const goToLanding = () => {
@@ -221,6 +226,9 @@ function App() {
     if (!hasPaid) {
       // 폼 데이터 저장 후 결제 페이지로 이동
       localStorage.setItem('aura_pending_form', JSON.stringify({ height, weight, styleGoal }))
+      if (selectedImage) {
+        try { localStorage.setItem('aura_pending_image', selectedImage) } catch {}
+      }
       setLoading(true)
       try {
         const successUrl = `${window.location.origin}/?checkout_id={CHECKOUT_ID}`
