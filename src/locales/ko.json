@@ -1,0 +1,88 @@
+{
+  "landing": {
+    "title": "나만의",
+    "subtitle": "완벽한 실루엣",
+    "desc": "전신 사진 한 장으로 AI가 체형을 분석하고,\n당신만을 위한 스타일 보고서와\n추천 헤어스타일을 즉시 제공합니다.",
+    "feature": {
+      "bodyAnalysis": "체형 분석",
+      "colorPalette": "컬러 팔레트",
+      "hairRecommendation": "헤어 추천"
+    },
+    "verifying": "결제 확인 중...",
+    "cta": "스타일 분석 시작하기",
+    "note": "정보 입력 후 결제 · 회원가입 불필요",
+    "terms": "서비스 약관",
+    "refund": "환불 규정",
+    "privacy": "개인정보 처리방침",
+    "resetPayment": "결제 초기화 (테스트용)",
+    "menu": "메뉴"
+  },
+  "form": {
+    "back": "뒤로가기",
+    "tag": "AI PERSONAL STYLIST",
+    "title": "스타일 분석",
+    "subtitle": "체형과 비율을 AI가 분석합니다",
+    "sectionTitle": "나의 실루엣\n분석하기",
+    "sectionDesc": "AI가 체형과 비율을 분석하여 나에게 딱 맞는\n스타일과 헤어스타일을 추천해드립니다.",
+    "upload": "전신 사진을 업로드해주세요",
+    "uploadHint": "탭하거나 드래그하여 업로드",
+    "selectPhoto": "사진 선택",
+    "removePhoto": "사진 제거",
+    "preview": "미리보기",
+    "height": "키 (cm)",
+    "weight": "몸무게 (kg)",
+    "styleGoal": "스타일 목표"
+  },
+  "styleGoal": {
+    "casual": "캐주얼",
+    "formal": "포멀",
+    "trendy": "트렌디",
+    "date": "데이트"
+  },
+  "styleGoalValue": {
+    "casual": "캐주얼 & 편안함",
+    "formal": "프로페셔널 & 샤프",
+    "trendy": "트렌디 & 볼드",
+    "date": "데이트룩"
+  },
+  "result": {
+    "hairstyleTitle": "추천 헤어스타일 9종",
+    "hairstyleAlt": "추천 헤어스타일",
+    "noResult": "분석 결과가 없습니다."
+  },
+  "button": {
+    "save": "이미지 저장",
+    "saving": "저장 중...",
+    "share": "공유하기",
+    "sharing": "공유 중...",
+    "home": "처음으로 돌아가기",
+    "analyze": "스타일 분석하기",
+    "analyzeWithPayment": "결제 후 분석하기 · $3.99",
+    "analyzing": "분석 중...",
+    "redirecting": "결제 페이지 이동 중..."
+  },
+  "cta": {
+    "noteAfterPaid": "분석 버튼을 클릭하면 AI 분석 서비스 이용약관에 동의하는 것으로 간주됩니다.",
+    "noteBefore": "키와 몸무게 입력 후 결제가 진행됩니다. 분석 실패 시 자동 환불됩니다."
+  },
+  "nav": {
+    "home": "홈",
+    "analyze": "분석",
+    "wardrobe": "옷장",
+    "profile": "프로필"
+  },
+  "scan": {
+    "text": "10년 경력의 수석 스타일리스트가\n당신의 실루엣을 분석 중입니다..."
+  },
+  "share": {
+    "title": "Aura AI 스타일 리포트",
+    "text": "나만의 AI 퍼스널 스타일 분석 결과!"
+  },
+  "error": {
+    "noMeasurements": "키와 몸무게를 입력해주세요!",
+    "checkoutError": "결제 페이지 이동 중 오류가 발생했습니다.",
+    "clipboardCopied": "결과가 클립보드에 복사되었습니다.",
+    "networkError": "네트워크 오류가 발생했습니다.",
+    "refundProcessed": "분석 서비스 오류로 자동 환불 처리되었습니다.\n다시 분석을 시도해주세요."
+  }
+}

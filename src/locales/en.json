@@ -1,0 +1,88 @@
+{
+  "landing": {
+    "title": "Your",
+    "subtitle": "Perfect Silhouette",
+    "desc": "Upload a full-body photo and let AI analyze your body shape,\ndelivering a personalized style report\nand hairstyle recommendations instantly.",
+    "feature": {
+      "bodyAnalysis": "Body Analysis",
+      "colorPalette": "Color Palette",
+      "hairRecommendation": "Hair Tips"
+    },
+    "verifying": "Verifying payment...",
+    "cta": "Start Style Analysis",
+    "note": "No sign-up required · Pay after entering info",
+    "terms": "Terms of Service",
+    "refund": "Refund Policy",
+    "privacy": "Privacy Policy",
+    "resetPayment": "Reset Payment (Test)",
+    "menu": "Menu"
+  },
+  "form": {
+    "back": "Go back",
+    "tag": "AI PERSONAL STYLIST",
+    "title": "Style Analysis",
+    "subtitle": "AI analyzes your body shape and proportions",
+    "sectionTitle": "Analyze My\nSilhouette",
+    "sectionDesc": "AI analyzes your body shape and proportions\nto recommend styles and hairstyles made just for you.",
+    "upload": "Upload a full-body photo",
+    "uploadHint": "Tap or drag to upload",
+    "selectPhoto": "Select Photo",
+    "removePhoto": "Remove photo",
+    "preview": "Preview",
+    "height": "Height (cm)",
+    "weight": "Weight (kg)",
+    "styleGoal": "Style Goal"
+  },
+  "styleGoal": {
+    "casual": "Casual",
+    "formal": "Formal",
+    "trendy": "Trendy",
+    "date": "Date"
+  },
+  "styleGoalValue": {
+    "casual": "Casual & Comfortable",
+    "formal": "Professional & Sharp",
+    "trendy": "Trendy & Bold",
+    "date": "Date Look"
+  },
+  "result": {
+    "hairstyleTitle": "9 Recommended Hairstyles",
+    "hairstyleAlt": "Recommended hairstyles",
+    "noResult": "No analysis result available."
+  },
+  "button": {
+    "save": "Save Image",
+    "saving": "Saving...",
+    "share": "Share",
+    "sharing": "Sharing...",
+    "home": "Back to Home",
+    "analyze": "Analyze My Style",
+    "analyzeWithPayment": "Pay & Analyze · $3.99",
+    "analyzing": "Analyzing...",
+    "redirecting": "Redirecting to payment..."
+  },
+  "cta": {
+    "noteAfterPaid": "By clicking Analyze, you agree to our AI analysis service terms.",
+    "noteBefore": "Payment is processed after entering your measurements. Auto-refunded if analysis fails."
+  },
+  "nav": {
+    "home": "Home",
+    "analyze": "Analyze",
+    "wardrobe": "Wardrobe",
+    "profile": "Profile"
+  },
+  "scan": {
+    "text": "Our senior stylist with 10 years of experience\nis analyzing your silhouette..."
+  },
+  "share": {
+    "title": "Aura AI Style Report",
+    "text": "My personalized AI style analysis result!"
+  },
+  "error": {
+    "noMeasurements": "Please enter your height and weight!",
+    "checkoutError": "An error occurred while redirecting to payment.",
+    "clipboardCopied": "Result copied to clipboard.",
+    "networkError": "A network error occurred.",
+    "refundProcessed": "An error occurred during analysis. A refund has been processed automatically.\nPlease try again."
+  }
+}

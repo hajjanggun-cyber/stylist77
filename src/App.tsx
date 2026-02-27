@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n from './i18n'
 import html2canvas from 'html2canvas'
 import './App.css'
 
@@ -8,18 +10,17 @@ type StyleGoalId = 'casual' | 'formal' | 'trendy' | 'date'
 interface StyleGoalOption {
   id: StyleGoalId
   icon: string
-  label: string
-  value: string
 }
 
 const STYLE_GOALS: StyleGoalOption[] = [
-  { id: 'casual', icon: 'check_circle', label: '캐주얼', value: '캐주얼 & 편안함' },
-  { id: 'formal', icon: 'business_center', label: '포멀', value: '프로페셔널 & 샤프' },
-  { id: 'trendy', icon: 'auto_awesome', label: '트렌디', value: '트렌디 & 볼드' },
-  { id: 'date', icon: 'favorite', label: '데이트', value: '데이트룩' },
+  { id: 'casual', icon: 'check_circle' },
+  { id: 'formal', icon: 'business_center' },
+  { id: 'trendy', icon: 'auto_awesome' },
+  { id: 'date', icon: 'favorite' },
 ]
 
 function App() {
+  const { t } = useTranslation()
   const [page, setPage] = useState<Page>('landing')
   const [height, setHeight] = useState('')
   const [weight, setWeight] = useState('')
@@ -131,7 +132,7 @@ function App() {
         localStorage.removeItem('aura_paid')
         localStorage.removeItem('aura_order_id')
         setHasPaid(false)
-        setResult('분석 서비스 오류로 자동 환불 처리되었습니다.\n다시 분석을 시도해주세요.')
+        setResult(t('error.refundProcessed'))
       }
     } catch {}
   }
@@ -141,12 +142,13 @@ function App() {
     setLoading(true)
     setResult('')
     setHairstyleImage(null)
+    const lang = i18n.language.startsWith('ko') ? 'ko' : 'en'
     try {
-      const goalValue = STYLE_GOALS.find(g => g.id === sg)?.value ?? '캐주얼 & 편안함'
+      const goalValue = t(`styleGoalValue.${sg}`)
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ height: h, weight: w, styleGoal: goalValue, imageBase64: img || undefined }),
+        body: JSON.stringify({ height: h, weight: w, styleGoal: goalValue, imageBase64: img || undefined, lang }),
       })
       const data = await response.json() as { result?: string; error?: string; hairstyleImage?: string }
       if (!response.ok || data.error) {
@@ -154,11 +156,11 @@ function App() {
         await triggerRefund()
         return
       }
-      setResult(data.result || '분석 결과가 없습니다.')
+      setResult(data.result || t('result.noResult'))
       setHairstyleImage(data.hairstyleImage || null)
       setAnalysisSuccess(true)
     } catch {
-      setResult('네트워크 오류가 발생했습니다.')
+      setResult(t('error.networkError'))
       setAnalysisSuccess(false)
       await triggerRefund()
     } finally {
@@ -204,12 +206,12 @@ function App() {
         const file = new File([blob], 'aura-style-report.png', { type: 'image/png' })
         try {
           if (navigator.share && navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ title: 'Aura AI 스타일 리포트', text: '나만의 AI 퍼스널 스타일 분석 결과!', files: [file] })
+            await navigator.share({ title: t('share.title'), text: t('share.text'), files: [file] })
           } else if (navigator.share) {
-            await navigator.share({ title: 'Aura AI 스타일 리포트', text: result })
+            await navigator.share({ title: t('share.title'), text: result })
           } else {
             await navigator.clipboard.writeText(result)
-            alert('결과가 클립보드에 복사되었습니다.')
+            alert(t('error.clipboardCopied'))
           }
         } catch {}
         setSharing(false)
@@ -221,7 +223,7 @@ function App() {
 
   // 분석 버튼 클릭: 미결제 → 결제 흐름, 결제 완료 → 분석 실행
   const analyzeStyle = async () => {
-    if (!height || !weight) { alert('키와 몸무게를 입력해주세요!'); return }
+    if (!height || !weight) { alert(t('error.noMeasurements')); return }
 
     if (!hasPaid) {
       // 폼 데이터 저장 후 결제 페이지로 이동
@@ -241,17 +243,22 @@ function App() {
         if (data.checkoutUrl) {
           window.location.href = data.checkoutUrl
         } else {
-          alert('결제 페이지 이동 중 오류가 발생했습니다.')
+          alert(t('error.checkoutError'))
           setLoading(false)
         }
       } catch {
-        alert('결제 페이지 이동 중 오류가 발생했습니다.')
+        alert(t('error.checkoutError'))
         setLoading(false)
       }
       return
     }
 
     await runAnalysis(height, weight, styleGoal, selectedImage)
+  }
+
+  const toggleLang = () => {
+    const next = i18n.language.startsWith('ko') ? 'en' : 'ko'
+    i18n.changeLanguage(next)
   }
 
   // ── Landing Page ──
@@ -263,9 +270,28 @@ function App() {
           {/* Sticky Header */}
           <header className="landing__header">
             <span className="landing__logo-text">AURA</span>
-            <button className="landing__header-menu" aria-label="메뉴">
-              <span className="material-symbols-outlined">menu</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                onClick={toggleLang}
+                style={{
+                  background: 'none',
+                  border: '1px solid #ccc',
+                  color: '#333',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: '4px 10px',
+                  borderRadius: 20,
+                  cursor: 'pointer',
+                  letterSpacing: '0.05em',
+                }}
+                aria-label="Switch language"
+              >
+                {i18n.language.startsWith('ko') ? 'EN' : '한국어'}
+              </button>
+              <button className="landing__header-menu" aria-label={t('landing.menu')}>
+                <span className="material-symbols-outlined">menu</span>
+              </button>
+            </div>
           </header>
 
           {/* Hero Image */}
@@ -281,8 +307,8 @@ function App() {
                 AI PERSONAL STYLIST
               </div>
               <h1 className="landing__title">
-                <span className="landing__title-small">나만의</span>
-                <span className="landing__title-serif">완벽한 실루엣</span>
+                <span className="landing__title-small">{t('landing.title')}</span>
+                <span className="landing__title-serif">{t('landing.subtitle')}</span>
                 <span className="landing__title-amp">AI PERSONAL STYLIST</span>
               </h1>
             </div>
@@ -291,45 +317,45 @@ function App() {
           {/* Content */}
           <main className="landing__main">
             <p className="landing__desc">
-              전신 사진 한 장으로 AI가 체형을 분석하고,<br />
-              당신만을 위한 스타일 보고서와<br />
-              추천 헤어스타일을 즉시 제공합니다.
+              {t('landing.desc').split('\n').map((line, i) => (
+                <span key={i}>{line}{i < t('landing.desc').split('\n').length - 1 && <br />}</span>
+              ))}
             </p>
 
             <div className="landing__features">
               {[
-                { icon: 'accessibility_new', label: '체형 분석' },
-                { icon: 'color_lens', label: '컬러 팔레트' },
-                { icon: 'face_retouching_natural', label: '헤어 추천' },
+                { icon: 'accessibility_new', key: 'bodyAnalysis' },
+                { icon: 'color_lens', key: 'colorPalette' },
+                { icon: 'face_retouching_natural', key: 'hairRecommendation' },
               ].map(f => (
-                <div className="landing__feature" key={f.label}>
+                <div className="landing__feature" key={f.key}>
                   <div className="landing__feature-icon-wrap">
                     <span className="material-symbols-outlined">{f.icon}</span>
                   </div>
-                  <span className="landing__feature-label">{f.label}</span>
+                  <span className="landing__feature-label">{t(`landing.feature.${f.key}`)}</span>
                 </div>
               ))}
             </div>
 
             {verifying ? (
               <button className="landing__cta" disabled>
-                <span className="loader" style={{ borderTopColor: '#fff' }} />&nbsp;결제 확인 중...
+                <span className="loader" style={{ borderTopColor: '#fff' }} />&nbsp;{t('landing.verifying')}
               </button>
             ) : (
               <button className="landing__cta" onClick={() => setPage('form')}>
-                스타일 분석 시작하기
+                {t('landing.cta')}
                 <span className="material-symbols-outlined">arrow_forward</span>
               </button>
             )}
 
-            <p className="landing__note">정보 입력 후 결제 · 회원가입 불필요</p>
+            <p className="landing__note">{t('landing.note')}</p>
 
             <div className="landing__legal">
-              <a href="/terms.html">서비스 약관</a>
+              <a href="/terms.html">{t('landing.terms')}</a>
               <span className="landing__legal-dot">·</span>
-              <a href="/refund.html">환불 규정</a>
+              <a href="/refund.html">{t('landing.refund')}</a>
               <span className="landing__legal-dot">·</span>
-              <a href="/privacy.html">개인정보 처리방침</a>
+              <a href="/privacy.html">{t('landing.privacy')}</a>
             </div>
 
             {hasPaid && (
@@ -337,7 +363,7 @@ function App() {
                 style={{ marginTop: 4, background: 'none', border: 'none', color: '#bbb', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}
                 onClick={() => { localStorage.clear(); location.reload() }}
               >
-                결제 초기화 (테스트용)
+                {t('landing.resetPayment')}
               </button>
             )}
           </main>
@@ -363,8 +389,9 @@ function App() {
             <div className="scan-badge">ANALYZING FEATURES</div>
           </div>
           <p className="scan-text">
-            10년 경력의 수석 스타일리스트가<br />
-            당신의 실루엣을 분석 중입니다...
+            {t('scan.text').split('\n').map((line, i) => (
+              <span key={i}>{line}{i < t('scan.text').split('\n').length - 1 && <br />}</span>
+            ))}
           </p>
           <div className="scan-dots">
             <div className="scan-dot" />
@@ -382,24 +409,49 @@ function App() {
           alt=""
         />
         <div className="form-hero__overlay">
-          <button className="form-hero__back" onClick={goToLanding} aria-label="뒤로가기">
+          <button className="form-hero__back" onClick={goToLanding} aria-label={t('form.back')}>
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <div className="form-hero__text">
-            <p className="form-hero__tag">AI PERSONAL STYLIST</p>
-            <h2 className="form-hero__title">스타일 분석</h2>
-            <p className="form-hero__sub">체형과 비율을 AI가 분석합니다</p>
+            <p className="form-hero__tag">{t('form.tag')}</p>
+            <h2 className="form-hero__title">{t('form.title')}</h2>
+            <p className="form-hero__sub">{t('form.subtitle')}</p>
           </div>
+          <button
+            onClick={toggleLang}
+            style={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.4)',
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 600,
+              padding: '4px 10px',
+              borderRadius: 20,
+              cursor: 'pointer',
+              backdropFilter: 'blur(4px)',
+            }}
+            aria-label="Switch language"
+          >
+            {i18n.language.startsWith('ko') ? 'EN' : '한국어'}
+          </button>
         </div>
       </div>
 
       <main className="main">
         {/* Title */}
         <section className="section-hero">
-          <h1 className="section-hero__title">나의 실루엣<br />분석하기</h1>
+          <h1 className="section-hero__title">
+            {t('form.sectionTitle').split('\n').map((line, i) => (
+              <span key={i}>{line}{i < t('form.sectionTitle').split('\n').length - 1 && <br />}</span>
+            ))}
+          </h1>
           <p className="section-hero__sub">
-            AI가 체형과 비율을 분석하여 나에게 딱 맞는<br />
-            스타일과 헤어스타일을 추천해드립니다.
+            {t('form.sectionDesc').split('\n').map((line, i) => (
+              <span key={i}>{line}{i < t('form.sectionDesc').split('\n').length - 1 && <br />}</span>
+            ))}
           </p>
         </section>
 
@@ -414,11 +466,11 @@ function App() {
           >
             {selectedImage ? (
               <>
-                <img src={selectedImage} alt="미리보기" className="upload-zone__preview" />
+                <img src={selectedImage} alt={t('form.preview')} className="upload-zone__preview" />
                 <button
                   className="upload-zone__remove"
                   onClick={(e) => { e.stopPropagation(); setSelectedImage(null) }}
-                  aria-label="사진 제거"
+                  aria-label={t('form.removePhoto')}
                 >
                   <span className="material-symbols-outlined">close</span>
                 </button>
@@ -428,13 +480,13 @@ function App() {
                 <div className="upload-zone__icon-wrap">
                   <span className="material-symbols-outlined upload-zone__icon">photo_camera</span>
                 </div>
-                <p className="upload-zone__title">전신 사진을 업로드해주세요</p>
-                <p className="upload-zone__sub">탭하거나 드래그하여 업로드</p>
+                <p className="upload-zone__title">{t('form.upload')}</p>
+                <p className="upload-zone__sub">{t('form.uploadHint')}</p>
                 <button
                   className="upload-zone__btn"
                   onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
                 >
-                  사진 선택
+                  {t('form.selectPhoto')}
                 </button>
               </>
             )}
@@ -446,7 +498,7 @@ function App() {
         <section className="section-metrics">
           <div className="metrics-grid">
             <div className="metric-field">
-              <label className="metric-label" htmlFor="height">키 (cm)</label>
+              <label className="metric-label" htmlFor="height">{t('form.height')}</label>
               <input
                 id="height"
                 className="metric-input"
@@ -457,7 +509,7 @@ function App() {
               />
             </div>
             <div className="metric-field">
-              <label className="metric-label" htmlFor="weight">몸무게 (kg)</label>
+              <label className="metric-label" htmlFor="weight">{t('form.weight')}</label>
               <input
                 id="weight"
                 className="metric-input"
@@ -472,7 +524,7 @@ function App() {
 
         {/* Style Goal */}
         <section className="section-goal">
-          <label className="goal-label">스타일 목표</label>
+          <label className="goal-label">{t('form.styleGoal')}</label>
           <div className="goal-grid">
             {STYLE_GOALS.map(g => (
               <button
@@ -481,7 +533,7 @@ function App() {
                 onClick={() => setStyleGoal(g.id)}
               >
                 <span className="material-symbols-outlined goal-btn__icon">{g.icon}</span>
-                <span className="goal-btn__label">{g.label}</span>
+                <span className="goal-btn__label">{t(`styleGoal.${g.id}`)}</span>
               </button>
             ))}
           </div>
@@ -502,9 +554,9 @@ function App() {
               <div className="result__hairstyle">
                 <p className="result__hairstyle-title">
                   <span className="material-symbols-outlined">content_cut</span>
-                  추천 헤어스타일 9종
+                  {t('result.hairstyleTitle')}
                 </p>
-                <img src={hairstyleImage} alt="추천 헤어스타일" className="result__hairstyle-img" />
+                <img src={hairstyleImage} alt={t('result.hairstyleAlt')} className="result__hairstyle-img" />
               </div>
             )}
           </section>
@@ -515,11 +567,11 @@ function App() {
           <section className="result-actions">
             <button className="result-action-btn" onClick={saveAsImage} disabled={saving || sharing}>
               <span className="material-symbols-outlined">download</span>
-              {saving ? '저장 중...' : '이미지 저장'}
+              {saving ? t('button.saving') : t('button.save')}
             </button>
             <button className="result-action-btn result-action-btn--share" onClick={shareResult} disabled={saving || sharing}>
               <span className="material-symbols-outlined">share</span>
-              {sharing ? '공유 중...' : '공유하기'}
+              {sharing ? t('button.sharing') : t('button.share')}
             </button>
             <button
               className="result-action-btn"
@@ -533,7 +585,7 @@ function App() {
               disabled={saving || sharing}
             >
               <span className="material-symbols-outlined">home</span>
-              처음으로 돌아가기
+              {t('button.home')}
             </button>
           </section>
         )}
@@ -542,16 +594,14 @@ function App() {
         {!analysisSuccess && <section className="section-cta">
           <button className="cta-btn" onClick={analyzeStyle} disabled={loading}>
             {loading
-              ? <><span className="loader" />&nbsp;{hasPaid ? '분석 중...' : '결제 페이지 이동 중...'}</>
+              ? <><span className="loader" />&nbsp;{hasPaid ? t('button.analyzing') : t('button.redirecting')}</>
               : hasPaid
-                ? '스타일 분석하기'
-                : '결제 후 분석하기 · $3.99'
+                ? t('button.analyze')
+                : t('button.analyzeWithPayment')
             }
           </button>
           <p className="cta-note">
-            {hasPaid
-              ? '분석 버튼을 클릭하면 AI 분석 서비스 이용약관에 동의하는 것으로 간주됩니다.'
-              : '키와 몸무게 입력 후 결제가 진행됩니다. 분석 실패 시 자동 환불됩니다.'}
+            {hasPaid ? t('cta.noteAfterPaid') : t('cta.noteBefore')}
           </p>
         </section>}
       </main>
@@ -560,19 +610,19 @@ function App() {
       <nav className="bottom-nav">
         <a className="bottom-nav__item" href="#" onClick={(e) => { e.preventDefault(); goToLanding() }}>
           <span className="material-symbols-outlined">home</span>
-          <span className="bottom-nav__label">홈</span>
+          <span className="bottom-nav__label">{t('nav.home')}</span>
         </a>
         <a className="bottom-nav__item bottom-nav__item--active" href="#">
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
-          <span className="bottom-nav__label">분석</span>
+          <span className="bottom-nav__label">{t('nav.analyze')}</span>
         </a>
         <a className="bottom-nav__item" href="#">
           <span className="material-symbols-outlined">checkroom</span>
-          <span className="bottom-nav__label">옷장</span>
+          <span className="bottom-nav__label">{t('nav.wardrobe')}</span>
         </a>
         <a className="bottom-nav__item" href="#">
           <span className="material-symbols-outlined">person</span>
-          <span className="bottom-nav__label">프로필</span>
+          <span className="bottom-nav__label">{t('nav.profile')}</span>
         </a>
       </nav>
     </div>

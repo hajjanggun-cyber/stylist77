@@ -6,6 +6,7 @@ interface RequestBody {
     height: string;
     weight: string;
     imageBase64?: string;
+    lang?: 'ko' | 'en';
 }
 
 function dataURLtoBlob(dataUrl: string): Blob {
@@ -20,41 +21,7 @@ function dataURLtoBlob(dataUrl: string): Blob {
     return new Blob([u8arr], { type: mime });
 }
 
-export const onRequestPost: PagesFunction<Env> = async (context) => {
-    const corsHeaders = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Content-Type": "application/json",
-    };
-
-    try {
-        const body: RequestBody = await context.request.json();
-        const { height, weight, imageBase64 } = body;
-
-        if (!height || !weight) {
-            return new Response(JSON.stringify({ error: "키와 몸무게를 입력해주세요." }), {
-                status: 400,
-                headers: corsHeaders,
-            });
-        }
-
-        const apiKey = context.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            return new Response(JSON.stringify({ error: "서버 API Key가 설정되지 않았습니다." }), {
-                status: 500,
-                headers: corsHeaders,
-            });
-        }
-
-        // 메시지 구성 (이미지가 있으면 Vision 모델 사용)
-        const input: object[] = [
-            {
-                role: "system",
-                content: [
-                    {
-                        type: "input_text",
-                        text: `당신은 10년 경력의 전문 퍼스널 스타일리스트입니다.
+const SYSTEM_PROMPT_KO = `당신은 10년 경력의 전문 퍼스널 스타일리스트입니다.
 사용자의 신체 정보와 사진을 바탕으로 구체적이고 실용적인 스타일 컨설팅 보고서를 작성해주세요.
 보고서는 다음 항목을 포함해야 합니다:
 1. 체형 분석
@@ -66,19 +33,80 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 7. 컬러 팔레트 추천
 8. 종합 스타일링 팁
 
-각 항목을 명확하게 구분하여 작성해주세요.`,
+각 항목을 명확하게 구분하여 작성해주세요.`;
+
+const SYSTEM_PROMPT_EN = `You are a professional personal stylist with 10 years of experience.
+Based on the user's body measurements and photo, write a detailed and practical style consulting report.
+The report must include the following sections:
+1. Body Type Analysis
+2. Style Keywords (3–5 keywords)
+3. Recommended Tops
+4. Recommended Bottoms
+5. Recommended Outerwear
+6. Styles to Avoid
+7. Color Palette Recommendations
+8. Overall Styling Tips
+
+Clearly separate each section in your response.`;
+
+const HAIRSTYLE_PROMPT_KO = '너는 최고의 헤어스타일리스트야. 3x3 그리드로, 어떤 헤어스타일인지 설명과 함께 첨부한 사진 속 사람이랑 최고로 잘 어울리는 헤어스타일 9개 생성해줘. 단 첨부한 사람의 얼굴은 절대 바꾸지말고 기존 얼굴 그대로 유지하고 헤어스타일만 바꿔.';
+
+const HAIRSTYLE_PROMPT_EN = 'You are the world\'s best hairstylist. Generate 9 hairstyles in a 3x3 grid that best suit the person in the attached photo, each with a brief style description. Do NOT change the person\'s face — keep it exactly as is and only change the hairstyle.';
+
+export const onRequestPost: PagesFunction<Env> = async (context) => {
+    const corsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Content-Type": "application/json",
+    };
+
+    try {
+        const body: RequestBody = await context.request.json();
+        const { height, weight, imageBase64, lang = 'ko' } = body;
+
+        if (!height || !weight) {
+            const msg = lang === 'en' ? "Please enter your height and weight." : "키와 몸무게를 입력해주세요.";
+            return new Response(JSON.stringify({ error: msg }), {
+                status: 400,
+                headers: corsHeaders,
+            });
+        }
+
+        const apiKey = context.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            const msg = lang === 'en' ? "Server API key is not configured." : "서버 API Key가 설정되지 않았습니다.";
+            return new Response(JSON.stringify({ error: msg }), {
+                status: 500,
+                headers: corsHeaders,
+            });
+        }
+
+        const systemPrompt = lang === 'en' ? SYSTEM_PROMPT_EN : SYSTEM_PROMPT_KO;
+
+        // 메시지 구성 (이미지가 있으면 Vision 모델 사용)
+        const input: object[] = [
+            {
+                role: "system",
+                content: [
+                    {
+                        type: "input_text",
+                        text: systemPrompt,
                     },
                 ],
             },
         ];
 
         if (imageBase64) {
+            const userText = lang === 'en'
+                ? `Height: ${height}cm, Weight: ${weight}kg\nBased on the photo and body measurements above, write a personal style consulting report.`
+                : `키: ${height}cm, 몸무게: ${weight}kg\n위 사진과 신체 정보를 바탕으로 퍼스널 스타일 컨설팅 보고서를 작성해주세요.`;
             input.push({
                 role: "user",
                 content: [
                     {
                         type: "input_text",
-                        text: `키: ${height}cm, 몸무게: ${weight}kg\n위 사진과 신체 정보를 바탕으로 퍼스널 스타일 컨설팅 보고서를 작성해주세요.`,
+                        text: userText,
                     },
                     {
                         type: "input_image",
@@ -87,12 +115,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                 ],
             });
         } else {
+            const userText = lang === 'en'
+                ? `Height: ${height}cm, Weight: ${weight}kg\nBased on these body measurements, write a personal style consulting report.`
+                : `키: ${height}cm, 몸무게: ${weight}kg\n이 신체 정보를 바탕으로 퍼스널 스타일 컨설팅 보고서를 작성해주세요.`;
             input.push({
                 role: "user",
                 content: [
                     {
                         type: "input_text",
-                        text: `키: ${height}cm, 몸무게: ${weight}kg\n이 신체 정보를 바탕으로 퍼스널 스타일 컨설팅 보고서를 작성해주세요.`,
+                        text: userText,
                     },
                 ],
             });
@@ -123,9 +154,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         let hairstyleFetch: Promise<Response> | null = null;
         if (imageBase64) {
             const imageBlob = dataURLtoBlob(imageBase64);
+            const hairstylePrompt = lang === 'en' ? HAIRSTYLE_PROMPT_EN : HAIRSTYLE_PROMPT_KO;
             const formData = new FormData();
             formData.append('image', imageBlob, 'photo.png');
-            formData.append('prompt', '너는 최고의 헤어스타일리스트야. 3x3 그리드로, 어떤 헤어스타일인지 설명과 함께 첨부한 사진 속 사람이랑 최고로 잘 어울리는 헤어스타일 9개 생성해줘. 단 첨부한 사람의 얼굴은 절대 바꾸지말고 기존 얼굴 그대로 유지하고 헤어스타일만 바꿔.');
+            formData.append('prompt', hairstylePrompt);
             formData.append('model', 'gpt-image-1.5');
             formData.append('n', '1');
             formData.append('size', '1024x1024');
@@ -152,8 +184,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         if (!openaiResponse.ok) {
             const errorData = await openaiResponse.json() as { error?: { message?: string } };
+            const fallback = lang === 'en' ? "An OpenAI API error occurred." : "OpenAI API 오류가 발생했습니다.";
             return new Response(
-                JSON.stringify({ error: errorData.error?.message || "OpenAI API 오류가 발생했습니다." }),
+                JSON.stringify({ error: errorData.error?.message || fallback }),
                 { status: openaiResponse.status, headers: corsHeaders }
             );
         }
@@ -162,7 +195,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             output: { type: string; content?: { type: string; text: string }[] }[];
         };
         const messageItem = data.output.find(item => item.type === 'message' && item.content && item.content.length > 0);
-        const result = messageItem?.content?.[0]?.text ?? '분석 결과가 없습니다.';
+        const noResult = lang === 'en' ? 'No analysis result available.' : '분석 결과가 없습니다.';
+        const result = messageItem?.content?.[0]?.text ?? noResult;
 
         // 헤어스타일 이미지 처리
         let hairstyleImage: string | null = null;
