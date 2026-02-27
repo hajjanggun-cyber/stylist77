@@ -259,37 +259,48 @@ function App() {
     return (
       <div className="app">
         <div className="landing">
-          <div className="landing__glow" />
 
+          {/* Sticky Header */}
           <header className="landing__header">
-            <div className="landing__logo-wrap">
-              <span className="material-symbols-outlined landing__logo-icon">styler</span>
-            </div>
-            <span className="landing__logo-text">AI Stylist</span>
+            <span className="landing__logo-text">AURA</span>
+            <button className="landing__header-menu" aria-label="메뉴">
+              <span className="material-symbols-outlined">menu</span>
+            </button>
           </header>
 
-          <main className="landing__main">
-            <div className="landing__badge">
-              <span className="material-symbols-outlined" style={{ fontSize: 13 }}>auto_awesome</span>
-              AI 기반 퍼스널 스타일링
+          {/* Hero Image */}
+          <div className="landing__hero">
+            <img
+              className="landing__hero-img"
+              src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=480&q=90&fit=crop&crop=top"
+              alt="Fashion editorial"
+            />
+            <div className="landing__hero-overlay">
+              <div className="landing__hero-tag">
+                <span className="material-symbols-outlined" style={{ fontSize: 11 }}>auto_awesome</span>
+                AI PERSONAL STYLIST
+              </div>
+              <h1 className="landing__title">
+                <span className="landing__title-small">나만의</span>
+                <span className="landing__title-serif">완벽한 실루엣</span>
+                <span className="landing__title-amp">AI PERSONAL STYLIST</span>
+              </h1>
             </div>
+          </div>
 
-            <h1 className="landing__title">
-              나만의 완벽한<br />
-              <span className="landing__title-accent">스타일을 찾아보세요</span>
-            </h1>
-
+          {/* Content */}
+          <main className="landing__main">
             <p className="landing__desc">
-              사진을 업로드하고 신체 정보를 입력하면,<br />
-              AI가 당신만을 위한 맞춤 스타일 보고서와<br />
-              추천 헤어스타일을 제공합니다.
+              전신 사진 한 장으로 AI가 체형을 분석하고,<br />
+              당신만을 위한 스타일 보고서와<br />
+              추천 헤어스타일을 즉시 제공합니다.
             </p>
 
             <div className="landing__features">
               {[
-                { icon: 'body_system', label: '체형 분석' },
-                { icon: 'palette', label: '컬러 팔레트' },
-                { icon: 'content_cut', label: '헤어 추천' },
+                { icon: 'accessibility_new', label: '체형 분석' },
+                { icon: 'color_lens', label: '컬러 팔레트' },
+                { icon: 'face_retouching_natural', label: '헤어 추천' },
               ].map(f => (
                 <div className="landing__feature" key={f.label}>
                   <div className="landing__feature-icon-wrap">
@@ -302,7 +313,7 @@ function App() {
 
             {verifying ? (
               <button className="landing__cta" disabled>
-                <span className="loader" />&nbsp;결제 확인 중...
+                <span className="loader" style={{ borderTopColor: '#fff' }} />&nbsp;결제 확인 중...
               </button>
             ) : (
               <button className="landing__cta" onClick={() => setPage('form')}>
@@ -313,15 +324,17 @@ function App() {
 
             <p className="landing__note">정보 입력 후 결제 · 회원가입 불필요</p>
 
-            <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a href="/terms.html" style={{ fontSize: 12, color: '#4a7a5a', textDecoration: 'underline' }}>서비스 약관</a>
-              <a href="/refund.html" style={{ fontSize: 12, color: '#4a7a5a', textDecoration: 'underline' }}>환불 규정</a>
-              <a href="/privacy.html" style={{ fontSize: 12, color: '#4a7a5a', textDecoration: 'underline' }}>개인정보 처리방침</a>
+            <div className="landing__legal">
+              <a href="/terms.html">서비스 약관</a>
+              <span className="landing__legal-dot">·</span>
+              <a href="/refund.html">환불 규정</a>
+              <span className="landing__legal-dot">·</span>
+              <a href="/privacy.html">개인정보 처리방침</a>
             </div>
 
             {hasPaid && (
               <button
-                style={{ marginTop: 8, background: 'none', border: 'none', color: '#888', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
+                style={{ marginTop: 4, background: 'none', border: 'none', color: '#bbb', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}
                 onClick={() => { localStorage.clear(); location.reload() }}
               >
                 결제 초기화 (테스트용)
@@ -336,13 +349,49 @@ function App() {
   // ── Form / Result Page ──
   return (
     <div className="app">
-      <header className="header">
-        <button className="header__back" onClick={goToLanding} aria-label="뒤로가기">
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        <h2 className="header__title">스타일 분석</h2>
-        <div className="header__spacer" />
-      </header>
+      {/* Scan Line Loading Overlay */}
+      {loading && (
+        <div className="scan-overlay">
+          <div className="scan-card">
+            <div className="scan-card__bg">
+              {selectedImage
+                ? <img src={selectedImage} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', opacity:0.4, filter:'grayscale(0.5)' }} />
+                : <span className="material-symbols-outlined scan-card__icon">person</span>
+              }
+            </div>
+            <div className="scan-line" />
+            <div className="scan-badge">ANALYZING FEATURES</div>
+          </div>
+          <p className="scan-text">
+            10년 경력의 수석 스타일리스트가<br />
+            당신의 실루엣을 분석 중입니다...
+          </p>
+          <div className="scan-dots">
+            <div className="scan-dot" />
+            <div className="scan-dot" />
+            <div className="scan-dot" />
+          </div>
+        </div>
+      )}
+
+      {/* Form Page Hero Banner */}
+      <div className="form-hero">
+        <img
+          className="form-hero__img"
+          src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=480&q=85&fit=crop&crop=top"
+          alt=""
+        />
+        <div className="form-hero__overlay">
+          <button className="form-hero__back" onClick={goToLanding} aria-label="뒤로가기">
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <div className="form-hero__text">
+            <p className="form-hero__tag">AI PERSONAL STYLIST</p>
+            <h2 className="form-hero__title">스타일 분석</h2>
+            <p className="form-hero__sub">체형과 비율을 AI가 분석합니다</p>
+          </div>
+        </div>
+      </div>
 
       <main className="main">
         {/* Title */}
@@ -443,7 +492,8 @@ function App() {
           <section ref={resultRef} className="section-result">
             <div className="result__header">
               <span className="material-symbols-outlined">auto_awesome</span>
-              스타일 컨설팅 결과
+              <span>Style Dossier</span>
+              <span className="result__dossier-tag">AI Report</span>
             </div>
             <div className="result__body">
               {result.split('\n').map((line, i) => <p key={i}>{line}</p>)}
