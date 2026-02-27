@@ -5,7 +5,7 @@ interface Env {
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const { orderId } = await ctx.request.json<{ orderId: string }>()
 
-  const refundRes = await fetch('https://sandbox-api.polar.sh/v1/refunds/', {
+  const refundRes = await fetch('https://api.polar.sh/v1/refunds/', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${ctx.env.POLAR_ACCESS_TOKEN}`,

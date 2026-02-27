@@ -11,7 +11,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   }
 
   // 1) checkout 상태 확인
-  const checkoutRes = await fetch(`https://sandbox-api.polar.sh/v1/checkouts/${checkoutId}`, {
+  const checkoutRes = await fetch(`https://api.polar.sh/v1/checkouts/${checkoutId}`, {
     headers: { 'Authorization': `Bearer ${ctx.env.POLAR_ACCESS_TOKEN}` },
   })
   const checkout = await checkoutRes.json() as {
@@ -35,7 +35,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     })
   }
 
-  const orderRes = await fetch(`https://sandbox-api.polar.sh/v1/orders/${orderId}`, {
+  const orderRes = await fetch(`https://api.polar.sh/v1/orders/${orderId}`, {
     headers: { 'Authorization': `Bearer ${ctx.env.POLAR_ACCESS_TOKEN}` },
   })
   const order = await orderRes.json() as { id: string }
