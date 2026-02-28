@@ -98,6 +98,9 @@ function App() {
     setWeight('')
     setSelectedImage(null)
     setAnalysisSuccess(false)
+    setHasPaid(false)
+    localStorage.removeItem('aura_paid')
+    localStorage.removeItem('aura_order_id')
   }
 
   const processFile = (file: File) => {
@@ -159,15 +162,15 @@ function App() {
       setResult(data.result || t('result.noResult'))
       setHairstyleImage(data.hairstyleImage || null)
       setAnalysisSuccess(true)
-      // 분석 성공 즉시 결제 플래그 삭제 (일회성 결제)
-      localStorage.removeItem('aura_paid')
-      localStorage.removeItem('aura_order_id')
-      setHasPaid(false)
     } catch {
       setResult(t('error.networkError'))
       setAnalysisSuccess(false)
       await triggerRefund()
     } finally {
+      // 성공/실패 관계없이 항상 결제 플래그 삭제 (일회성 결제)
+      localStorage.removeItem('aura_paid')
+      localStorage.removeItem('aura_order_id')
+      setHasPaid(false)
       setLoading(false)
     }
   }
