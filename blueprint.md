@@ -1,20 +1,29 @@
-# Personal Stylist Service
+# Personal Stylist Service (Aura)
 
 ## Overview
 
-This application will provide personal styling recommendations to users based on their photo, height, and weight.
+This application, "Aura," provides professional personal styling recommendations using the **Gemini 3.1 Pro** AI model. It analyzes user-provided photos, height, and weight to deliver detailed body type analysis, fashion advice, and hairstyle suggestions.
 
 ## Features
 
-### Initial UI (v1)
+### Core Analysis (v1.5 - Gemini 3.1 Pro Upgrade)
 
-*   A screen where users can upload a photo of themselves.
-*   Input fields for users to enter their height and weight.
-*   A submit button to send the information for analysis.
+*   **Advanced AI Analysis:** High-fidelity body type analysis and styling report using `gemini-3.1-pro-preview`.
+*   **Multi-Modal Input:** Supports image upload and physical metrics (height/weight).
+*   **Hairstyle Generation:** AI-generated hairstyle suggestions based on the user's facial features.
+*   **Localization:** Full support for English and Korean.
+*   **Payment Integration:** Secure checkout and automated refund handling via Polar.sh.
+*   **Modern UI:** Premium "Aura" design with glassmorphism and sticky navigation.
+
+### New Features (Planned/Implemented)
+
+*   **Chat with Stylist:** Real-time follow-up chat to ask specific questions about the styling report.
+*   **Enhanced Security:** Robust API key management and server-side validation.
+*   **Result Persistence:** Save and share analysis results as high-quality images.
 
 ## Plan
 
-1.  **Create the basic UI:** Build a React component with a form to capture the user's photo, height, and weight.
-2.  **Style the UI:** Add CSS to make the UI visually appealing and user-friendly.
-3.  **Implement state management:** Use React hooks to manage the form data.
-4.  **Set up routing:** Use `react-router-dom` for potential future navigation.
+1.  **Migrate Backend to Gemini 3.1 Pro:** Refactor `functions/api/analyze.ts` to use Google's Gemini API instead of OpenAI.
+2.  **Implement Style Chat Feature:** Add a chat interface to the results page to allow interactive follow-ups.
+3.  **Refine UI & Aesthetics:** Ensure consistent "Aura" styling across all new components.
+4.  **Automated Testing:** Add tests for the core analysis flow and API integrations.

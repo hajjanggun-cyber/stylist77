@@ -52,8 +52,14 @@ function App() {
   const [sharing, setSharing] = useState(false)
   const [analysisSuccess, setAnalysisSuccess] = useState(false)
 
+  // ── 채팅 상태 ──
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'model'; content: string }[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [isChatLoading, setIsChatLoading] = useState(false)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const resultRef = useRef<HTMLElement>(null)
+  const chatEndRef = useRef<HTMLDivElement>(null)
   const pendingAnalysisRef = useRef<{ height: string; weight: string; styleGoal: StyleGoalId; image: string | null } | null>(null)
 
   // ── 앱 시작: 세션 확인 + 결제 리다이렉트 처리 ──
@@ -113,6 +119,11 @@ function App() {
     setPage('form')
     runAnalysis(saved.height, saved.weight, saved.styleGoal, saved.image)
   }, [hasPaid])
+
+  // 채팅 스크롤 처리
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatMessages])
 
   // ── Supabase 미사용 결제 확인 ──
   const checkPaymentStatus = async (): Promise<boolean> => {
@@ -178,6 +189,8 @@ function App() {
     setHairstyleImage(null)
     setAnalysisSuccess(false)
     setHasPaid(false)
+    setChatMessages([])
+    setChatInput('')
   }
 
   const goToLanding = () => {
@@ -189,6 +202,8 @@ function App() {
     setSelectedImage(null)
     setAnalysisSuccess(false)
     setHasPaid(false)
+    setChatMessages([])
+    setChatInput('')
   }
 
   // ── 파일 처리 ──
@@ -251,6 +266,37 @@ function App() {
       setAnalysisSuccess(false)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // ── 채팅 핸들러 ──
+  const handleSendChat = async () => {
+    if (!chatInput.trim()) return
+    const userMsg = chatInput.trim()
+    setChatInput('')
+    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }])
+    setIsChatLoading(true)
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          history: chatMessages,
+          message: userMsg,
+          context: result,
+        }),
+      })
+      const data = await response.json() as { reply?: string; error?: string }
+      if (data.reply) {
+        setChatMessages(prev => [...prev, { role: 'model', content: data.reply! }])
+      } else {
+        alert(data.error || 'Chat error')
+      }
+    } catch {
+      alert('Network error')
+    } finally {
+      setIsChatLoading(false)
     }
   }
 
@@ -690,9 +736,9 @@ function App() {
         <section className="section-upload">
           <div
             className={`upload-zone${isDragging ? ' upload-zone--drag' : ''}${selectedImage ? ' upload-zone--filled' : ''}`}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
+            onDragOver = {onDragOver}
+            onDragLeave = {onDragLeave}
+            onDrop = {onDrop}
             onClick={() => !selectedImage && fileInputRef.current?.click()}
           >
             {selectedImage ? (
@@ -773,6 +819,40 @@ function App() {
                 <img src={hairstyleImage} alt={t('result.hairstyleAlt')} className="result__hairstyle-img" />
               </div>
             )}
+
+            {/* Chat with Stylist Section */}
+            <div className="result__chat">
+              <div className="chat__header">
+                <span className="material-symbols-outlined">chat_bubble</span>
+                <span>Ask Aura (Follow-up)</span>
+              </div>
+              <div className="chat__messages">
+                {chatMessages.length === 0 && (
+                  <p className="chat__empty">Have a follow-up question about your report? Ask Aura below!</p>
+                )}
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`chat__message chat__message--${msg.role}`}>
+                    {msg.content}
+                  </div>
+                ))}
+                {isChatLoading && <div className="chat__message chat__message--model loader-chat" />}
+                <div ref={chatEndRef} />
+              </div>
+              <div className="chat__input-group">
+                <input
+                  type="text"
+                  className="chat__input"
+                  placeholder="Ask about items, colors, or tips..."
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSendChat()}
+                  disabled={isChatLoading}
+                />
+                <button className="chat__send-btn" onClick={handleSendChat} disabled={isChatLoading}>
+                  <span className="material-symbols-outlined">send</span>
+                </button>
+              </div>
+            </div>
           </section>
         )}
 

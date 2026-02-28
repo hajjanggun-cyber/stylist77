@@ -1,217 +1,64 @@
 # 변경 이력 최신 업데이트
 
-## 2026-02-28 (Gemini)
-### 회원가입/로그인 다국어 지원 및 UI 기능 강화
-- **Supabase 에러 메시지 다국어 처리**: 로그인/회원가입 실패 시 발생하는 에러(비밀번호 길이, 기가입 이메일 등)를 영어 원문에서 사용자의 언어(한/영)에 맞춰 변환하여 출력.
-- **비밀번호 확인 필드 추가**: 회원가입 시 비밀번호를 두 번 입력받아 불일치 시 다국어 에러 메시지 제공.
-- **비밀번호 토글 기능**: 눈 모양 아이콘(`visibility`, `visibility_off`)을 추가하여 비밀번호 표시/숨김 토글 기능 구현.
-- **회원가입 성공 메시지 안내**: 가입 직후 바로 분석 페이지로 넘기지 않고 "이메일 인증을 확인해주세요"라는 성공 안내 메시지가 렌더링되도록 처리.
-- **로그아웃 버튼 배치**: 로그인된 상태에서 분석 폼 페이지 우측 상단(언어 전환 버튼 옆)에 로그아웃 버튼 추가 노출.
+## 2026-02-28 (Gemini 3.1 Pro Upgrade)
+- **Gemini 3.1 Pro 마이그레이션**: 핵심 분석 엔진을 OpenAI에서 Google Gemini 3.1 Pro(`gemini-3.1-pro-preview`)로 업그레이드.
+- **실시간 스타일 대화 기능 추가**: `/api/chat` 엔드포인트 신설 및 프론트엔드 채팅 UI 구현. 보고서 기반 후속 상담 가능.
+- **보안 및 결제 연동 강화**: Supabase Auth(JWT)와 연동하여 결제 상태를 서버사이드에서 검증하도록 로직 고도화.
+- **회원가입/로그인 다국어 지원 및 UI 기능 강화**: 에러 메시지 다국어 처리, 비밀번호 확인 및 토글 기능 추가.
 
-## 2026-02-28 16:55:56 (Claude Sonnet 4.6)
+## 2026-02-28 (Supabase & Payment Integration)
+- **Supabase Auth 도입**: 이메일/비밀번호 기반 회원가입 및 로그인 시스템 구축.
+- **결제 검증 서버사이드 이전**: `localStorage` 기반 결제 확인을 Supabase DB(`payments` 테이블) 연동 방식으로 전환하여 보안 강화.
+- **JWT 검증 도입**: `/api/analyze` 및 `/api/verify-checkout` 호출 시 Supabase JWT를 통한 신원 확인.
 
-### Supabase 회원가입/로그인 + 결제 연동 구현 계획
-
-**배경**: 현재 결제 여부를 `localStorage(aura_paid)`로만 관리해 보안 취약 및 세션 간 유지 불안정.
-Supabase Auth(이메일/비밀번호)를 도입하고, 결제 기록을 Supabase DB에 서버사이드로 저장해 신뢰 모델 강화.
-
-#### 사용자가 직접 해야 할 선행 작업
-1. [supabase.com](https://supabase.com) 에서 새 프로젝트 생성
-2. Supabase SQL Editor에서 아래 SQL 실행:
-```sql
-CREATE TABLE public.payments (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  order_id    text NOT NULL UNIQUE,
-  checkout_id text NOT NULL,
-  paid_at     timestamptz NOT NULL DEFAULT now(),
-  used_at     timestamptz,
-  created_at  timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_payments_user_unspent ON public.payments (user_id) WHERE used_at IS NULL;
-ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "users_read_own_payments" ON public.payments FOR SELECT USING (auth.uid() = user_id);
-CREATE UNIQUE INDEX idx_payments_user_one_unspent ON public.payments (user_id) WHERE used_at IS NULL;
-```
-3. 환경변수 4가지 수집 및 설정:
-   - `.dev.vars`: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
-   - `.env.local`(신규): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
-   - Cloudflare Pages 대시보드 환경변수에도 4가지 동일하게 추가
-
-#### 구현 대상 파일
-| 파일 | 작업 |
-|------|------|
-| `package.json` | `@supabase/supabase-js` 패키지 추가 |
-| `src/lib/supabase.ts` | Supabase 클라이언트 싱글톤 (신규 생성) |
-| `wrangler.toml` | `[vars]` 섹션에 `SUPABASE_URL` 추가 |
-| `src/locales/en.json` | `"auth"` 번역 키 추가 |
-| `src/locales/ko.json` | `"auth"` 번역 키 추가 |
-| `functions/api/verify-checkout.ts` | JWT 검증 + Supabase payments INSERT (전체 교체) |
-| `functions/api/analyze.ts` | JWT 검증 + 결제 행 확인/소비 + 실패 시 롤백 |
-| `src/App.tsx` | auth 페이지 추가, 로그인/로그아웃, 결제 Supabase 연동 |
-
-#### 변경 후 서비스 흐름
-```
-랜딩 → [CTA 클릭]
-  ├─ 비로그인 → auth 페이지 (이메일/비밀번호 로그인·회원가입)
-  └─ 로그인 → form 페이지
-       ↓ [분석하기 클릭]
-  ├─ 미결제 → Polar 결제 → /?checkout_id=xxx 리다이렉트
-  │           → verify-checkout(JWT 포함) → Supabase payments INSERT
-  │           → 자동 분석 실행
-  └─ 결제 있음 → /api/analyze(JWT 포함)
-               → Supabase 결제 행 확인 → used_at 업데이트 → OpenAI 호출
-               → 결과 표시 (결제 소진, 재결제 필요)
-```
-
-#### 보안 개선 사항
-- `hasPaid` 판단 주체: localStorage(클라이언트) → Supabase DB(서버사이드)
-- `service_role` 키는 Cloudflare Functions에서만 사용, 프론트엔드 노출 금지
-- `used_at IS NULL` 조건부 PATCH로 동시 중복 사용 방지 (낙관적 잠금)
-- RLS로 사용자는 자신의 결제 내역만 조회 가능
-
----
-
-# 추천 프롬프트 (최고급 디자인 생성용)
-
-**작성일**: 2026년 2월 27일
-**작성자**: Antigravity (Gemini)
-
-AI 디자인 생성 도구(v0, Lovable, Claude, Cursor 등)에 입력하여 **프리미엄하고 세련된 UI**를 뽑아낼 수 있는 최고급 프롬프트입니다.
-
----
-
-### 🎨 추천 프롬프트 (복사해서 사용)
-
-**[역할 부여 및 전체 컨셉]**
-당신은 세계 최고의 UI/UX 디자이너입니다. 하이엔드 패션 매거진의 우아함과 최첨단 AI 앱의 극강의 세련됨을 결합한 모바일 최적화 웹 앱 'Aura(아우라)'를 디자인해주세요. 반응형(Mobile-first)으로 제작하며, 전체적인 테마는 아주 고급스러운 '다크 모드(Deep Onyx Black & Emerald/Gold Accent)'로 구성하거나, 극도로 미니멀한 '클린 화이트 & 실버' 테마 중 하나를 선택해 압도적인 비주얼을 보여주세요. TailwindCSS와 Framer Motion(구현 가능하다면)을 적극 활용하여 부드러운 애니메이션과 글래스모피즘(Glassmorphism) 효과를 넣어주세요.
-
-**[핵심 기능 및 화면 구성 요소]**
-단일 페이지 내에서 스크롤하거나 상태에 따라 자연스럽게 전환되는 구조로 만들어야 합니다. 아래의 요소들이 반드시 포함되어야 합니다.
-
-**1. 랜딩 & 히어로 섹션 (Landing Hero)**
-- 매혹적인 웰컴 카피: "나만의 완벽한 실루엣을 찾다"
-- 서비스의 정체성을 보여주는 세련된 로고(Aura)와 은은하게 빛나는 백그라운드 오로라/그라데이션 효과.
-- 화면 중앙에 시선을 사로잡는 [스타일 분석 시작하기] 플로팅 버튼 (은은한 Glow 효과).
-
-**2. 사용자 정보 입력 폼 (Input Section - 카드 형태의 직관적인 UI)**
-- **사진 업로드 공간**: 단순한 점선 박스가 아닌, 아이폰의 네이티브 카메라 앱이나 고급 사진 편집기 느낌이 나는 업로드 UI (블러 처리된 배경, 라운딩된 모서리, 부드러운 드롭 섀도우 포함). 완료 시 사진이 예쁘게 크롭되어 보여야 함.
-- **신체 스펙 입력란**: 키(cm)와 몸무게(kg)를 입력하는 인풋 박스는 테두리 없이 부드러운 배경색을 띠고, 포커스 시 고급스러운 Accent 색상으로 빛나는 이펙트 적용.
-- **스타일 목표 (Style Goal) 선택 타일**: '캐주얼', '포멀', '트렌디', '데이트' 4가지 선택지. 체크박스나 라디오 버튼 대신 아이콘이 포함된 고급스러운 타일(버튼) 형태로, 선택 시 입체감 있게 튀어나오는 효과 적용.
-
-**3. 로딩 상태 (Analyzing State)**
-- 일반적인 스피너 대신, AI가 사진과 체형을 스캔하는 듯한 멋진 애니메이션 효과 (예: 사진 위를 지나가는 스캐닝 라인이나 부드럽게 점멸하는 펄스 효과). "10년 경력의 수석 스타일리스트가 당신의 실루엣을 분석 중입니다..."라는 감성적인 텍스트 동반.
-
-**4. 분석 결과 리포트 (Result View)**
-- **체형 분석 및 스타일 가이드 텍스트**: 결과 텍스트가 단순히 줄글로 떨어지는 것이 아니라, 패션 잡지의 레이아웃처럼 '체형 요약', '베스트 스타일', '비추천 스타일'로 깔끔하게 카드형으로 분리되어 보이도록 디자인. 가독성을 높이는 폰트(예: 서양권은 Playfair, 한글은 프리텐다드 등) 사용.
-- **AI 헤어스타일 제안 (3x3 그리드)**: 하단에 9개의 추천 헤어스타일 이미지가 들어갈 3x3 갤러리 영역. 각 이미지는 모서리가 둥글고 마우스 오버 시 살짝 확대되는 호버 이펙트 적용.
-
-**5. 액션 및 네비게이션**
-- 플로팅 스타일의 하단 네비게이션 바(Bottom Tab Bar): 홈, 분석, 옷장(Wardrobe), 프로필 아이콘 (Apple iOS 스타일의 글래스모피즘 바).
-- 결과창 하단에 [리포트 이미지로 저장] 및 [친구에게 공유하기] 버튼. 버튼은 너무 튀지 않는 세련된 고스트(Ghost) 버튼이나 미니멀한 디자인으로 배치.
-
-**[스타일링 제약 사항]**
-- 절대 촌스럽거나 단순한 부트스트랩(Bootstrap) 느낌이 나면 안 됩니다.
-- 폰트 굵기와 색상의 대비(Hierarchy)를 확실히 주어 정보의 중요도를 나누세요.
-- 더미(Placeholder) 이미지는 Unsplash의 고해상도 패션 화보 이미지를 사용해 느낌을 극대화해주세요.
-
----
-
-# 변경 이력
-
-## 2026-02-27 22:59:47 (Antigravity/Gemini)
-- **개발 환경 초기화**: `stylist77` 리포지토리 최신 `main` 브랜치 clone 및 `npm install` 실행 완료.
-- **프로젝트 기획 및 구조 문서화**: `Doc_md/stylist77_flow_geminipro.md` 파일 생성하여 프론트엔드/백엔드 아키텍처 및 데이터 흐름 작성.
-- **이미지 캡처 및 공유 기능 확인**: `App.tsx` 내 `html2canvas`와 Web Share API를 활용한 결과물 공유/저장 로직 확인 및 기존 구현됨을 보고.
-- **API 결제 오류 진단 및 해결책 적용**:
-  - 결제(/api/checkout) 시 발생하는 `Unauthorized` 에러 원인을 파악하여 서버 환경 변수가 누락된 것을 확인.
-  - 임시 `.dev.vars` 파일을 생성하고 사용자의 터미널을 통해 `OPENAI_API_KEY` 설정.
-- **AI 디자인 생성 프롬프트 제공**: 고급화된 디자인 리뉴얼을 위해 V0, Lovable, Claude 등의 생성형 AI에게 전달할 '최고급 UI 기획 프롬프트'를 작성하여 문서의 최상단에 추가함.
-
-## 2026-02-27 (기본)
-- **Polar Access Token 스코프 설정**: 결제/환불 기능에 필요한 최소 권한 확정
-  - `checkouts:read` / `checkouts:write` - 결제 세션 생성 및 확인
-  - `refunds:read` / `refunds:write` - 환불 처리 및 상태 확인
-  - `orders:read` - 주문 확인
-- **Polar 프로덕트 ID 업데이트**: `fb0254ae-b35b-4d1c-b5e9-56834f3fd3ff`
-- **OpenAI API 키 갱신**: `.env` 및 `.dev.vars` 업데이트
+## 2026-02-27 (Initial Setup)
+- **Polar Access Token 스코프 설정**: 결제/환불 기능에 필요한 권한 확정.
+- **고급 UI 프롬프트 작성**: 프리미엄 디자인 리뉴얼을 위한 생성형 AI용 프롬프트 문서화.
 
 ---
 
 # Stylist77 (Aura Personal Stylist) 기획 및 구조 설명록
 
-**작성일**: 2026년 2월 27일
-**작성자**: Antigravity (Gemini)
+**작성일**: 2026년 2월 28일
+**작성자**: Antigravity (Gemini 3.1 Pro)
 
 ---
 
 ## 1. 프로젝트 기획 의도 (Overview & Blueprint)
 
-Stylist77 (서비스명: **Aura**) 프로젝트는 AI를 활용하여 개인에게 맞춤형 스타일링 컨설팅을 제공하는 서비스로 기획되었습니다. 주요 타겟 사용자는 자신의 체형에 맞는 패션 스타일을 추천받고자 하는 사람들이며, 복잡한 측정 대신 기본 신체 정보(키, 몸무게)와 전신 사진 한 장만으로 전문 스타일리스트의 조언을 받을 수 있도록 설계되었습니다.
+Stylist77 (서비스명: **Aura**) 프로젝트는 AI를 활용하여 개인에게 맞춤형 스타일링 컨설팅을 제공하는 서비스입니다. 최신 **Gemini 3.1 Pro** 모델을 통해 더욱 정교한 분석과 실시간 대화형 컨설팅을 제공합니다.
 
 ### 핵심 목표
-- **간편한 입력**: 사용자가 자신의 사진, 키, 몸무게를 손쉽게 업로드 및 입력할 수 있는 직관적인 UI 제공.
-- **AI 기반 전문 분석**: 전문 스타일리스트(10년 경력)의 페르소나를 부여받은 AI가 체형의 특징과 장단점을 분석.
-- **맞춤형 추천**: 분석 결과를 바탕으로 최적의 상/하의 조화, 컬러 팔레트를 제안.
-- **헤어스타일 제안**: 옷 스타일뿐만 아니라 얼굴을 유지한 채 어울리는 다양한 헤어스타일을 AI로 합성 및 제안.
+- **Gemini 3.1 Pro 분석**: 최신 대규모 언어 모델의 멀티모달 능력을 활용한 정밀 체형 분석.
+- **상호작용형 컨설팅**: 분석 결과에 대해 실시간으로 질문할 수 있는 'Aura Chat' 기능.
+- **보안 결제 시스템**: Supabase Auth와 Polar API를 결합한 안전한 유료 분석 시스템.
+- **다국어 지원**: 한국어와 영어 완전 지원.
 
 ---
 
 ## 2. 시스템 아키텍처 및 기술 스택 (Architecture & Tech Stack)
 
-본 프로그램은 서버리스 (Serverless) 아키텍처를 기반으로 프론트엔드와 백엔드가 철저하게 분리되어 동작합니다.
-
 ### 프론트엔드 (Frontend)
-- **프레임워크**: React (버전 19), TypeScript
-- **빌드 툴**: Vite (빠른 개발 및 번들링)
-- **스타일링**: 순수 CSS (`App.css`, `index.css`)를 사용하여 현대적이고 프리미엄한 감각의 디자인(입체감, 글래스모피즘 등) 구현
-- **주요 역할**: 
-  - 사용자 인터페이스 렌더링 및 데이터(키, 몸무게, 목표 스타일, 사진) 수집
-  - 사진을 브라우저 단에서 Base64 문자열로 인코딩 변환
-  - 백엔드(`/api/analyze`)로 데이터를 `POST` 전송하고 로딩 상태(스피너 등) 처리
-  - 수신된 분석 텍스트와 추천 헤어스타일 이미지를 화면에 예쁘게 출력
+- **프레임워크**: React 19, TypeScript, Vite
+- **인증**: Supabase Auth (Email/Password)
+- **스타일링**: 순수 CSS (Glassmorphism & Premium Design)
+- **다국어**: i18next
 
 ### 백엔드 (Backend)
-- **환경**: Cloudflare Pages Functions (`functions/api/analyze.ts`) 활용한 서버리스 API
-- **외부 연동**: OpenAI API (Vision 기능을 지원하는 모델 및 이미지 생성 모델)
-- **주요 역할**:
-  - 프론트엔드로부터 전달받은 신체 데이터 및 이미지(Base64) 파싱
-  - **체형 및 스타일 분석**: OpenAI Vision API 프롬프트에 '10년 경력의 스타일리스트' 페르소나를 부여하여 사진 속 사용자의 체형을 분석하고 컨설팅 보고서 텍스트를 생성
-  - **이미지 생성 (헤어스타일)**: 업로드된 인물의 얼굴을 보존하면서 새로운 헤어스타일 9가지를 제안하는 이미지 생성 API 호출
-  - JSON 형태로 AI의 응답 결과(마크다운 텍스트 및 이미지 데이터)를 조립하여 클라이언트(프론트엔드)로 반환
+- **환경**: Cloudflare Pages Functions
+- **데이터베이스**: Supabase (Payment tracking & Auth)
+- **AI 서비스**: 
+  - Google Gemini 3.1 Pro (Body Analysis & Style Chat)
+  - OpenAI DALL-E 3 (Hairstyle Generation)
+- **결제**: Polar.sh Integration
 
 ---
 
 ## 3. 프로그램 동작 구조 (Data Flow)
 
-프로그램이 실행되고 결과를 볼 때까지의 데이터 흐름은 다음과 같습니다.
-
-1. **초기화면 / 사용자 입력 단계**
-   - 사용자가 웹페이지 접속 후 폼(Form)에 `Height(키)`, `Weight(몸무게)`를 입력합니다.
-   - 전신 사진을 드래그 앤 드롭 또는 파일 탐색기를 통해 업로드합니다.
-   - (내부적으로 React의 `useState`가 입력값과 이미지 프리뷰 상태를 관리합니다.)
-
-2. **데이터 처리 및 요청 전송 단계**
-   - '스타일 분석 시작' 버튼을 클릭하면, `App.tsx`에서 입력값 유효성을 검사합니다.
-   - 이미지 파일을 `FileReader` API를 통해 Base64 텍스트 형식으로 변환합니다.
-   - `fetch` 함수를 사용하여 내부 API 엔드포인트인 `/api/analyze`에 `POST` 요청을 보냅니다. (이 때 Header와 Body를 JSON 규격으로 전송)
-
-3. **서버리스 함수(Cloudflare) 처리 단계**
-   - Cloudflare 환경에 배포된 `analyze.ts`가 요청을 수신합니다.
-   - 환경 변수에 저장된 `OPENAI_API_KEY`를 꺼내어 인증을 준비합니다.
-   - **첫 번째 AI 통신 (분석)**: GPT-4o(또는 Vision 모델)에 "이 이미지를 보고 키 OOOcm, 몸무게 OOOkg인 사람의 체형 컨설팅을 해줘"라는 프롬프트와 함께 요청합니다.
-   - **두 번째 AI 통신 (이미지)**: Image 생성 모델(DALL-E 등)에 사용자 얼굴 기반의 헤어스타일 생성 요청을 비동기적으로(또는 순차적으로) 처리합니다.
-
-4. **결과 수신 및 UI 렌더링 단계**
-   - 백엔드는 모든 AI 처리가 완료되면 한 번에 `{ result: "...", hairstyles: [...] }` 형태의 JSON 결과를 프론트엔드로 반환합니다.
-   - 프론트엔드는 응답받은 데이터를 파싱하여 로딩 상태를 해제하고, 화면 하단의 결과 구역(분석 리포트 텍스트 및 헤어스타일 갤러리)에 렌더링합니다.
-
----
-
-## 4. 향후 개선 및 보완 필요 사항
-*본 사항은 저장소 내 `haha.md`의 코드 리뷰 내역을 참고하여 작성되었습니다.*
-
-- **보안 강화**: `.env` 등에 API 키 평문 노출 방지 및 서버사이드에서만 API 키 관리
-- **안정성 향상**: 서버단에서의 엄격한 입력값(이미지 용량, 데이터 포맷 등) Validation 로직 추가
-- **개인화 정밀화**: 사용자가 입력한 추가적인 `styleGoal`(스타일 목표)도 백엔드 AI 프롬프트에 적극 반영하도록 로직 통합
-- **오류 처리**: OpenAI API 트래픽 초과나 타임아웃, 예외적인 에러 상황에 대해 사용자 친화적인 메시지 출력
+1. **인증 및 결제**: 사용자가 로그인 후 결제를 완료하면 Supabase `payments` 테이블에 기록됩니다.
+2. **데이터 수집**: 사용자가 사진, 키, 몸무게, 목표 스타일을 입력합니다.
+3. **분석 요청**: 프론트엔드가 JWT를 포함하여 `/api/analyze`를 호출합니다.
+4. **서버 검증**: 백엔드가 JWT를 검증하고 Supabase에서 미사용 결제 건이 있는지 확인합니다.
+5. **AI 분석**: Gemini 3.1 Pro가 사진과 수치를 분석하여 리포트를 생성하고, DALL-E 3가 헤어스타일을 생성합니다.
+6. **결과 표시 및 대화**: 사용자가 리포트를 확인하고, 'Aura Chat'을 통해 추가 질문을 던집니다.

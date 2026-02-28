@@ -7,7 +7,9 @@
       "Bash(npx wrangler:*)",
       "Bash(git:*)",
       "Bash(rm:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(xxd .env:*)",
+      "Bash(npm install:*)"
     ]
   }
 }
