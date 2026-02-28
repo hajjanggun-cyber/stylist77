@@ -9,8 +9,8 @@ i18n
   .use(initReactI18next)
   .init({
     resources: { ko: { translation: ko }, en: { translation: en } },
-    fallbackLng: 'en',
-    detection: { order: ['navigator'] },
+    fallbackLng: 'ko',
+    detection: { order: ['localStorage', 'navigator'], caches: ['localStorage'] },
     interpolation: { escapeValue: false },
   })
 

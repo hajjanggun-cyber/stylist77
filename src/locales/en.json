@@ -10,7 +10,7 @@
     },
     "verifying": "Verifying payment...",
     "cta": "Start Style Analysis",
-    "note": "No sign-up required · Pay after entering info",
+    "note": "Login required · Pay per analysis",
     "terms": "Terms of Service",
     "refund": "Refund Policy",
     "privacy": "Privacy Policy",
@@ -84,5 +84,25 @@
     "clipboardCopied": "Result copied to clipboard.",
     "networkError": "A network error occurred.",
     "refundProcessed": "An error occurred during analysis. A refund has been processed automatically.\nPlease try again."
+  },
+  "auth": {
+    "login": "Log In",
+    "signup": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "password_confirm": "Confirm Password",
+    "submit": "Submit",
+    "switch_to_signup": "Don't have an account? Sign Up",
+    "switch_to_login": "Already have an account? Log In",
+    "logout": "Log Out",
+    "back": "Go back",
+    "error_empty": "Please fill in all fields.",
+    "error_password_mismatch": "Passwords do not match.",
+    "error_auth": "Authentication failed. Please try again.",
+    "error_invalid_credentials": "Invalid email or password.",
+    "error_already_registered": "Email is already registered.",
+    "error_password_length": "Password should be at least 6 characters.",
+    "error_rate_limit": "Rate limit exceeded. Please try again later.",
+    "success_signup": "Sign up successful!\nPlease check your email for the confirmation link."
   }
 }

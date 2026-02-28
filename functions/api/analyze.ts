@@ -1,5 +1,9 @@
+import { createClient } from '@supabase/supabase-js'
+
 interface Env {
     OPENAI_API_KEY: string;
+    SUPABASE_URL: string;
+    SUPABASE_SERVICE_KEY: string;
 }
 
 interface RequestBody {
@@ -57,16 +61,58 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Content-Type": "application/json",
     };
 
+    // ── Auth: JWT 검증 ──
+    const authHeader = context.request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    }
+    const token = authHeader.replace('Bearer ', '')
+
+    const supabase = createClient(context.env.SUPABASE_URL, context.env.SUPABASE_SERVICE_KEY)
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    }
+
+    // ── Payment: 미사용 결제 확인 ──
+    const { data: payments, error: paymentFetchError } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('user_id', user.id)
+        .is('used_at', null)
+        .limit(1)
+
+    if (paymentFetchError || !payments || payments.length === 0) {
+        return new Response(JSON.stringify({ error: 'No valid payment found' }), { status: 402, headers: corsHeaders })
+    }
+
+    const paymentId = payments[0].id as string
+
+    // ── Payment: used_at atomic 업데이트 (double-use 방지) ──
+    const { error: updateError } = await supabase
+        .from('payments')
+        .update({ used_at: new Date().toISOString() })
+        .eq('id', paymentId)
+        .is('used_at', null)
+
+    if (updateError) {
+        return new Response(JSON.stringify({ error: 'Payment already used or update failed' }), { status: 402, headers: corsHeaders })
+    }
+
+    // ── OpenAI 호출 ──
     try {
         const body: RequestBody = await context.request.json();
         const { height, weight, imageBase64, lang = 'ko' } = body;
 
         if (!height || !weight) {
             const msg = lang === 'en' ? "Please enter your height and weight." : "키와 몸무게를 입력해주세요.";
+            // 결제 롤백
+            await supabase.from('payments').update({ used_at: null }).eq('id', paymentId)
             return new Response(JSON.stringify({ error: msg }), {
                 status: 400,
                 headers: corsHeaders,
@@ -76,6 +122,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         const apiKey = context.env.OPENAI_API_KEY;
         if (!apiKey) {
             const msg = lang === 'en' ? "Server API key is not configured." : "서버 API Key가 설정되지 않았습니다.";
+            await supabase.from('payments').update({ used_at: null }).eq('id', paymentId)
             return new Response(JSON.stringify({ error: msg }), {
                 status: 500,
                 headers: corsHeaders,
@@ -172,7 +219,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                     Authorization: `Bearer ${apiKey}`,
                 },
                 body: formData,
-
             });
         }
 
@@ -185,6 +231,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         if (!openaiResponse.ok) {
             const errorData = await openaiResponse.json() as { error?: { message?: string } };
             const fallback = lang === 'en' ? "An OpenAI API error occurred." : "OpenAI API 오류가 발생했습니다.";
+            // OpenAI 실패 → 결제 롤백
+            await supabase.from('payments').update({ used_at: null }).eq('id', paymentId)
             return new Response(
                 JSON.stringify({ error: errorData.error?.message || fallback }),
                 { status: openaiResponse.status, headers: corsHeaders }
@@ -216,6 +264,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         });
     } catch (error) {
         console.error("Function error:", error);
+        // 예외 발생 시 결제 롤백
+        await supabase.from('payments').update({ used_at: null }).eq('id', paymentId)
         return new Response(JSON.stringify({ error: "서버 오류가 발생했습니다." }), {
             status: 500,
             headers: corsHeaders,
@@ -230,7 +280,7 @@ export const onRequestOptions: PagesFunction = async () => {
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
         },
     });
 };

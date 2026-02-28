@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1d56c9",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "serif": ["Playfair Display", "serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .glow-button {
+            box-shadow: 0 0 20px rgba(29, 86, 201, 0.4);
+        }
+        .scan-line {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #1d56c9, transparent);
+            position: absolute;
+            top: 0;
+            left: 0;
+            animation: scan 3s linear infinite;
+        }
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-24">
+<!-- Header -->
+<header class="sticky top-0 z-50 glass px-6 py-4 flex justify-between items-center">
+<div class="text-primary font-serif text-2xl font-bold tracking-widest italic">AURA</div>
+<button class="p-2 rounded-full hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</header>
+<!-- Hero Section -->
+<section class="relative px-6 pt-12 pb-8 text-center overflow-hidden">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/10 rounded-full blur-3xl -z-10"></div>
+<h1 class="font-serif text-5xl md:text-6xl font-bold leading-tight mb-4 italic">
+            Discover Your Perfect <br/>
+<span class="text-primary">Silhouette &amp; Style</span>
+</h1>
+<p class="text-slate-500 dark:text-slate-400 text-lg mb-8 max-w-md mx-auto">
+            Experience the future of personal styling with our advanced AI analysis.
+        </p>
+<button class="bg-primary text-white px-10 py-4 rounded-full font-bold tracking-wide glow-button transition-transform active:scale-95 flex items-center gap-2 mx-auto">
+            Start AI Analysis
+            <span class="material-symbols-outlined text-sm">auto_awesome</span>
+</button>
+</section>
+<!-- Photo Upload -->
+<section class="px-6 py-8">
+<div class="glass rounded-3xl p-8 border-dashed border-2 border-primary/30 text-center flex flex-col items-center gap-6">
+<div class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-4xl">add_a_photo</span>
+</div>
+<div>
+<h3 class="text-xl font-bold mb-1">Upload Your Portrait</h3>
+<p class="text-sm text-slate-500">Drop your photo or tap to capture. High resolution works best.</p>
+</div>
+<div class="w-full h-64 rounded-2xl overflow-hidden relative group">
+<img class="w-full h-full object-cover" data-alt="High fashion portrait of a woman with sleek hair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1Fx9rWlTFbRPn--qmHUGXpiHhfdjMWAU55hE6uG_myxXK_-vLenhZTbEPTOeZ5WHyy49wHwGyBWRcbsXA2XgK7u0P1jWI5LB6ogpBnFYA02kHL4k28ftP9gmJS8mLVWeQ1HjzOCN5VMjUTNqo5Q-ihedBLGF5_SNpCLvql75aVdzrkeMqm_Gfr938uJu3vfA65whafigVoJVUtWc68WzOQHxOBnTaQF_xQkuMEI7NKGCw-rOZDE2JlsgJrzIdGf9YI2bSGAO515s"/>
+<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+<button class="bg-white/90 text-primary font-bold px-6 py-2 rounded-full text-sm">Change Image</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Personal Info -->
+<section class="px-6 py-8 space-y-8">
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Height (cm)</label>
+<input class="w-full bg-white dark:bg-slate-800 border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary" placeholder="175" type="number"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Weight (kg)</label>
+<input class="w-full bg-white dark:bg-slate-800 border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary" placeholder="62" type="number"/>
+</div>
+</div>
+<div class="space-y-4">
+<label class="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Style Goals</label>
+<div class="grid grid-cols-2 gap-3">
+<button class="glass p-4 rounded-2xl text-left border-primary bg-primary/5 ring-1 ring-primary/20">
+<span class="material-symbols-outlined text-primary mb-2 block">nightlife</span>
+<span class="font-bold">Casual</span>
+</button>
+<button class="glass p-4 rounded-2xl text-left hover:bg-white transition-colors">
+<span class="material-symbols-outlined text-slate-400 mb-2 block">business_center</span>
+<span class="font-bold">Formal</span>
+</button>
+<button class="glass p-4 rounded-2xl text-left hover:bg-white transition-colors">
+<span class="material-symbols-outlined text-slate-400 mb-2 block">trending_up</span>
+<span class="font-bold">Trendy</span>
+</button>
+<button class="glass p-4 rounded-2xl text-left hover:bg-white transition-colors">
+<span class="material-symbols-outlined text-slate-400 mb-2 block">favorite</span>
+<span class="font-bold">Date</span>
+</button>
+</div>
+</div>
+</section>
+<!-- AI Analysis Process -->
+<section class="px-6 py-12 text-center">
+<div class="relative w-64 h-80 mx-auto rounded-3xl overflow-hidden mb-6 shadow-2xl">
+<img class="w-full h-full object-cover grayscale opacity-50" data-alt="Model portrait being scanned by AI" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEZnrD-STHpAxmHzlotIkj8ZOgQ7svFSbIURkcM3vdf6Fobf_vcZ01BOn474xDk0oOPckZYZHxSdW1cXleJXdY6mSKaPOP4_orpWqFrm7gSIjHGRnTOJkP4h8QY0QD0ZMc6SN1Dr9Zpe0PToyC8cIWE1DD33ehaXvqnEdZ6phWFXr490SQ6Td5boAGPUPvud0eKenQSrrTEEYs1fRJ5AEgUVdZfvtbdfL31Gzm-Yqs2-hPmV1CimfmdAA-lKsKCvSiqvNBSusu_Ak"/>
+<div class="scan-line"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="bg-primary/80 text-white text-[10px] font-bold py-1 px-3 rounded-full backdrop-blur-md">ANALYZING FEATURES</div>
+</div>
+</div>
+<p class="text-sm font-medium italic text-slate-600 dark:text-slate-400 animate-pulse">
+            AI Stylist with 10 years of experience is analyzing your features...
+        </p>
+</section>
+<!-- Consultation Report -->
+<section class="px-6 py-8">
+<div class="bg-white dark:bg-slate-900 rounded-[2rem] p-8 shadow-sm">
+<div class="border-b border-slate-100 dark:border-slate-800 pb-6 mb-6">
+<h2 class="font-serif text-3xl font-bold mb-2">Style Dossier</h2>
+<div class="text-primary text-xs font-bold tracking-widest uppercase">Analysis Report #0429</div>
+</div>
+<div class="space-y-8">
+<div>
+<h4 class="text-xs font-bold uppercase tracking-widest text-primary mb-3">Body Analysis</h4>
+<p class="font-serif text-xl italic mb-2">Hourglass Figure</p>
+<p class="text-sm text-slate-500 leading-relaxed">Your proportions are balanced with a defined waistline. Your shoulders and hips are roughly equal in width.</p>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<div>
+<h4 class="text-xs font-bold uppercase tracking-widest text-emerald-600 mb-3">Best Style</h4>
+<ul class="text-sm space-y-2 font-medium">
+<li class="flex items-center gap-2"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Wrap Dresses</li>
+<li class="flex items-center gap-2"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> V-Necklines</li>
+<li class="flex items-center gap-2"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Pencil Skirts</li>
+</ul>
+</div>
+<div>
+<h4 class="text-xs font-bold uppercase tracking-widest text-rose-600 mb-3">Avoid</h4>
+<ul class="text-sm space-y-2 font-medium">
+<li class="flex items-center gap-2"><span class="w-1.5 h-1.5 bg-rose-500 rounded-full"></span> Boxy Tops</li>
+<li class="flex items-center gap-2"><span class="w-1.5 h-1.5 bg-rose-500 rounded-full"></span> Baby Doll Cuts</li>
+<li class="flex items-center gap-2"><span class="w-1.5 h-1.5 bg-rose-500 rounded-full"></span> Heavy Ruffles</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- AI Hair Recommendations -->
+<section class="px-6 py-8">
+<h3 class="font-serif text-2xl font-bold mb-6 italic">Curated Hair Edits</h3>
+<div class="grid grid-cols-3 gap-2">
+<div class="aspect-square rounded-lg overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Woman with bob haircut" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxFpo_HMoZGSJZObtOQdJWJcdNVaSeOburfmvKqWIH9m54uJh1E7OcGf_9DgNdxn2_mbUd2PgDNyUGtfdGcQyWgseD_0eLVg3i4Q81GSkOGFFG_PiCnURDmheNqrAdo4csoWCjVQ4rt1bNznzOHJ_nlSVzmyRSz2Qgk_nfpQQOyYXv60JwczT5qUYuU7c5DSDKGJT1Y5CPIdGzdQNBUKm26Szgr4a6PTQ2NUm3u5pIsLeihCb68bZS7tFagje1sNMQdlu-ThYAhsg"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">check_circle</span>
+</div>
+</div>
+<div class="aspect-square rounded-lg overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Woman with long wavy hair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPUNuG-xaocbg9SfV6KgSQBy4DCz0HynICF9gCXdlDUjccn0OdVZSVhDES2u1hpIBv9-5QAS0FkwNWDXrEfNyp9SAk9Cf3R9SlakwFWKEq4DVCRKfasGYy1jLPtQ8yd5st0uNPpXeRz2iqoPtE6EDEB6rU1wG9rgyc5NS_WTkLRtvuJ5VGmiP8mG-L8b5rNbHtkjGfkhmUKqFIHie4kAgjK6KrcuVWQNvmOvwhJu9IfhrZ6YCpoEijbyuDebx4Olycmim3q1fEw9c"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">check_circle</span>
+</div>
+</div>
+<div class="aspect-square rounded-lg overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Man with modern short hair style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_WbGUQD9Y5QT0MD4uGq9KuEvxPRHZhtx7kN51f6NGfCj9xrEtfHtDe3dndFVrCWzAtowJruTrItuprsA5I7MAtIc0eULp-TwEdjIuzRoSlOfgLUoGhrrGRBmb7p0reBV3aFuiMKbWZbA2DVa51emh0eo8F1S3b3qFZyv5PJTk8nxlph8OJKlrd2BFL953g9HPiH2lCdXdyc02asHFeCCiHjZsx22_BdhzVNEgZpQfIX-eWAsgeCSrTrtKEuGG6CzZKxY2IXbAl04"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">check_circle</span>
+</div>
+</div>
+<div class="aspect-square rounded-lg overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Man with textured fringe haircut" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBR6ptNJKKERKqvWiDjOfLkOw1wnBE5xsa38n5DiDxgRo7gwGkXozqlB9-6hz7kFjEbVbus9_v97Uymg8iDW57VW1JLSJCk9kdtZSOEHerKKrCqE2CFx6dMdgWTfjfBqPWxcGlOlol0oh_GpbUOY92jiABxhHCEhl-EzmGfB_1qL4cy8grulPN3XNFvRhfL3VEwG5zgawXpGLx2ZyzatMtN9ofGNX4-DNz-TxX766KitEam4bd6TGsHyOCnGBjR5yvTzE4jytW2JRE"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">check_circle</span>
+</div>
+</div>
+<div class="aspect-square rounded-lg overflow-hidden relative group cursor-pointer border-2 border-primary">
+<img class="w-full h-full object-cover scale-110" data-alt="Man with classic undercut hairstyle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9pU_ktwgt2c-Z9v_FFePd3zj956clsFmTXJhIRBbCSJiyqOpJ_n_nQJ93Ddf0nE-5CVCoJLJERjGwgLM-7cBAlYrDiJLxow73iDQnLtKfOvKKNLy85ItTOKK7EuiqxjfxyawPgtH8TrHxrxM5sA16H3u81RTdDUdLbT5opYx6PSy91xR-fWG_um6ERP9Ny89-hsfP47ASlJFJkguvxIDaRyv5wq6ghwz7jRKjGSBFhVd1x0jinE8WmgTEOvgX-huej4bYUAiGtNU"/>
+<div class="absolute inset-0 bg-primary/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-white">check_circle</span>
+</div>
+</div>
+<div class="aspect-square rounded-lg overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Woman with curly hair style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtd-Rx4gASt7nC6M0UX8Zb73BRct5TDQ_KQ5IG0shZgPPdyzgw_TYi82I3H_6AT59UPC3ijoBsjQLdD2Hn1Nj0JAtWc-m8kFYvPlsy2a8F4bq64FKkuDPtAsePvtVOgVDwLvxHWieXfLPF0OIUkTImkz8zX7E_v_JxTSv1iodQweqJOB9Q3oiPKazal5AQb4nUOhIFyo3xGXWWaUGcHKwYrTcUVz4BsRkMJP2fU8alnsrcXYl0nZG5dyhBkGKEfj_eBZlLdkq8j_0"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">check_circle</span>
+</div>
+</div>
+<div class="aspect-square rounded-lg overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Woman with blonde highlights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2ogMa1_-Gwwfu7XvK9nF56GqA2iDNlmysQvwur1pIip9McSr2nkRkPPGsOtZ_eFH__ETr0uB0bwt7SfxNCld5b-uXaOyJeHrzMSfHtDQOZpkaP1LooHsNA4NSdeq_7DIoplgxYe-qVxR8ZBTDDwTDm5rr-5M3k4tDM3uF1cmhtAZEwJFdFnoEWOX_h1O6c10cZMZTT6UaZl_Li_0Mm3NGsIWmNZHiCF7ZUHEn-10ZJxlInh8VNRu2nKzkTbGJhffKHPdQMZkW9p0"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">check_circle</span>
+</div>
+</div>
+<div class="aspect-square rounded-lg overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Man with slick back hair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdNaQ6nK00DG3juR5lbKQFBkRSmSyAg4WwCvGr96ntWJzBs2iEjlJZfXTkXd-Y-DmggsEaKdMDRyXQJ9EaSdwSAXHBpFUD8SxCM4_47NXZP9dq-G20MnJTgJ7WUKvGouENi2YMwlTIq0zAJMpLX-14NqGIYVZkhRAm1h20_APfsGyoB8Ojd4ABETLMc_2yKRACx5TXgmbuaETVr8J4cv0zDUVJKkrB-7e27_p3y33sskbc0P4mNbfc5afn2Bgd54B_4481ejQNgHk"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">check_circle</span>
+</div>
+</div>
+<div class="aspect-square rounded-lg overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Woman with trendy pixie cut" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALmfOP47EfXxtPIbm0kWwhtm5rMlvX3VDgTGzopugUK1kdcl-_XAF4r86omR4wHFgOvgC7yOom5JM-pwnB1MeTiBxM871oeTiCCjhMD7gSmHLQgoHshXjuGmKYTsoikEsY9Rjl_wCHPzBF9V-TRH-zuipoaxvNseESEiG2WbVJTZkA9c05SIcSiaoFbesRRwbAxc1mAKQNXpLIKAjGfUsKPbF9qV46l2tZF_6e13hXWekv7v5mxjAyIgXxdNPXoEhVQ7eX3z6Jlx0"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">check_circle</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Actions -->
+<section class="px-6 py-12 flex flex-col gap-4">
+<button class="w-full py-4 border-2 border-primary text-primary font-bold rounded-2xl hover:bg-primary/5 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">save</span>
+            Save Report
+        </button>
+<button class="w-full py-4 text-slate-500 font-bold rounded-2xl hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">share</span>
+            Share with Friends
+        </button>
+</section>
+<!-- Floating Navigation -->
+<nav class="fixed bottom-6 left-6 right-6 z-50">
+<div class="glass flex justify-around items-center px-4 py-3 rounded-full shadow-lg border border-white/40">
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
+<span class="text-[10px] font-bold">Analysis</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">apparel</span>
+<span class="text-[10px] font-bold">Wardrobe</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold">Profile</span>
+</a>
+</div>
+</nav>
+</body></html>

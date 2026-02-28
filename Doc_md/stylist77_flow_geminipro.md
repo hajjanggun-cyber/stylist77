@@ -1,3 +1,69 @@
+# 변경 이력 최신 업데이트
+
+## 2026-02-28 16:55:56 (Claude Sonnet 4.6)
+
+### Supabase 회원가입/로그인 + 결제 연동 구현 계획
+
+**배경**: 현재 결제 여부를 `localStorage(aura_paid)`로만 관리해 보안 취약 및 세션 간 유지 불안정.
+Supabase Auth(이메일/비밀번호)를 도입하고, 결제 기록을 Supabase DB에 서버사이드로 저장해 신뢰 모델 강화.
+
+#### 사용자가 직접 해야 할 선행 작업
+1. [supabase.com](https://supabase.com) 에서 새 프로젝트 생성
+2. Supabase SQL Editor에서 아래 SQL 실행:
+```sql
+CREATE TABLE public.payments (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  order_id    text NOT NULL UNIQUE,
+  checkout_id text NOT NULL,
+  paid_at     timestamptz NOT NULL DEFAULT now(),
+  used_at     timestamptz,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_payments_user_unspent ON public.payments (user_id) WHERE used_at IS NULL;
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "users_read_own_payments" ON public.payments FOR SELECT USING (auth.uid() = user_id);
+CREATE UNIQUE INDEX idx_payments_user_one_unspent ON public.payments (user_id) WHERE used_at IS NULL;
+```
+3. 환경변수 4가지 수집 및 설정:
+   - `.dev.vars`: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
+   - `.env.local`(신규): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+   - Cloudflare Pages 대시보드 환경변수에도 4가지 동일하게 추가
+
+#### 구현 대상 파일
+| 파일 | 작업 |
+|------|------|
+| `package.json` | `@supabase/supabase-js` 패키지 추가 |
+| `src/lib/supabase.ts` | Supabase 클라이언트 싱글톤 (신규 생성) |
+| `wrangler.toml` | `[vars]` 섹션에 `SUPABASE_URL` 추가 |
+| `src/locales/en.json` | `"auth"` 번역 키 추가 |
+| `src/locales/ko.json` | `"auth"` 번역 키 추가 |
+| `functions/api/verify-checkout.ts` | JWT 검증 + Supabase payments INSERT (전체 교체) |
+| `functions/api/analyze.ts` | JWT 검증 + 결제 행 확인/소비 + 실패 시 롤백 |
+| `src/App.tsx` | auth 페이지 추가, 로그인/로그아웃, 결제 Supabase 연동 |
+
+#### 변경 후 서비스 흐름
+```
+랜딩 → [CTA 클릭]
+  ├─ 비로그인 → auth 페이지 (이메일/비밀번호 로그인·회원가입)
+  └─ 로그인 → form 페이지
+       ↓ [분석하기 클릭]
+  ├─ 미결제 → Polar 결제 → /?checkout_id=xxx 리다이렉트
+  │           → verify-checkout(JWT 포함) → Supabase payments INSERT
+  │           → 자동 분석 실행
+  └─ 결제 있음 → /api/analyze(JWT 포함)
+               → Supabase 결제 행 확인 → used_at 업데이트 → OpenAI 호출
+               → 결과 표시 (결제 소진, 재결제 필요)
+```
+
+#### 보안 개선 사항
+- `hasPaid` 판단 주체: localStorage(클라이언트) → Supabase DB(서버사이드)
+- `service_role` 키는 Cloudflare Functions에서만 사용, 프론트엔드 노출 금지
+- `used_at IS NULL` 조건부 PATCH로 동시 중복 사용 방지 (낙관적 잠금)
+- RLS로 사용자는 자신의 결제 내역만 조회 가능
+
+---
+
 # 추천 프롬프트 (최고급 디자인 생성용)
 
 **작성일**: 2026년 2월 27일

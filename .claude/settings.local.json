@@ -5,7 +5,9 @@
       "Bash(npm run preview:*)",
       "Bash(npm run:*)",
       "Bash(npx wrangler:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(rm:*)",
+      "Bash(sed:*)"
     ]
   }
 }

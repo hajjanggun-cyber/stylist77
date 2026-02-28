@@ -10,7 +10,7 @@
     },
     "verifying": "결제 확인 중...",
     "cta": "스타일 분석 시작하기",
-    "note": "정보 입력 후 결제 · 회원가입 불필요",
+    "note": "로그인 필요 · 분석 1회당 결제",
     "terms": "서비스 약관",
     "refund": "환불 규정",
     "privacy": "개인정보 처리방침",
@@ -84,5 +84,25 @@
     "clipboardCopied": "결과가 클립보드에 복사되었습니다.",
     "networkError": "네트워크 오류가 발생했습니다.",
     "refundProcessed": "분석 서비스 오류로 자동 환불 처리되었습니다.\n다시 분석을 시도해주세요."
+  },
+  "auth": {
+    "login": "로그인",
+    "signup": "회원가입",
+    "email": "이메일",
+    "password": "비밀번호",
+    "password_confirm": "비밀번호 확인",
+    "submit": "확인",
+    "switch_to_signup": "계정이 없으신가요? 회원가입",
+    "switch_to_login": "이미 계정이 있으신가요? 로그인",
+    "logout": "로그아웃",
+    "back": "돌아가기",
+    "error_empty": "정보를 모두 입력해주세요.",
+    "error_password_mismatch": "비밀번호가 일치하지 않습니다.",
+    "error_auth": "인증에 실패했습니다. 다시 시도해주세요.",
+    "error_invalid_credentials": "이메일 또는 비밀번호가 잘못되었습니다.",
+    "error_already_registered": "이미 가입된 이메일입니다.",
+    "error_password_length": "비밀번호는 6자 이상이어야 합니다.",
+    "error_rate_limit": "요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
+    "success_signup": "회원가입이 완료되었습니다!\n입력하신 이메일로 발송된 인증 링크를 확인해주세요."
   }
 }
