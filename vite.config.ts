@@ -211,16 +211,35 @@ export default defineConfig({
           if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
           const vars = loadDevVars()
           const polarToken = vars.POLAR_ACCESS_TOKEN
+          const supabaseUrl = vars.SUPABASE_URL
+          const supabaseKey = vars.SUPABASE_SERVICE_KEY
           const qs = (req.url || '').split('?')[1] || ''
           const params = new URLSearchParams(qs)
           const checkoutId = params.get('checkout_id')
+          
           if (!checkoutId) {
             res.writeHead(400, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ error: 'checkout_id required' }))
             return
           }
+
+          const authHeader = req.headers['authorization']
+          if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.writeHead(401, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: 'Unauthorized' }))
+            return
+          }
+          const token = authHeader.replace('Bearer ', '')
+
           ;(async () => {
             try {
+              // Supabase User 검증 (동적 임포트 회피를 위해 fetch 직접 사용)
+              const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+                headers: { 'Authorization': `Bearer ${token}`, 'apikey': supabaseKey }
+              })
+              if (!userRes.ok) throw new Error('Auth failed')
+              const { id: userId } = await userRes.json() as { id: string }
+
               // 1) checkout 상태 확인
               const checkoutRes = await fetch(`https://sandbox-api.polar.sh/v1/checkouts/${checkoutId}`, {
                 headers: { 'Authorization': `Bearer ${polarToken}` },
@@ -246,10 +265,29 @@ export default defineConfig({
               const orderRes = await fetch(`https://sandbox-api.polar.sh/v1/orders/${orderId}`, {
                 headers: { 'Authorization': `Bearer ${polarToken}` },
               })
-              const order = await orderRes.json() as { id: string; status?: string }
+              const order = await orderRes.json() as { id: string; status?: string, amount?: number }
+              
+              // 3) Supabase DB 삽입 (fetch 사용)
+              await fetch(`${supabaseUrl}/rest/v1/payments`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${supabaseKey}`,
+                  'apikey': supabaseKey,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'resolution=minimal'
+                },
+                body: JSON.stringify({
+                  user_id: userId,
+                  order_id: order.id,
+                  checkout_id: checkoutId,
+                  amount: order.amount || 399
+                })
+              }).catch(e => console.error('Local DB Insert Error:', e))
+
               res.writeHead(200, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ paid: true, orderId: order.id }))
-            } catch {
+            } catch (e) {
+              console.error(e)
               res.writeHead(500, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ error: 'verify failed' }))
             }

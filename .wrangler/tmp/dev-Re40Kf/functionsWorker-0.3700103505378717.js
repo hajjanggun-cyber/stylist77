@@ -12337,6 +12337,16 @@ var onRequestGet = /* @__PURE__ */ __name2(async (ctx) => {
   if (!checkoutId) {
     return new Response(JSON.stringify({ error: "checkout_id required" }), { status: 400 });
   }
+  const authHeader = ctx.request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+  const token = authHeader.replace("Bearer ", "");
+  const supabase = createClient(ctx.env.SUPABASE_URL, ctx.env.SUPABASE_SERVICE_KEY);
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
   const checkoutRes = await fetch(`https://api.polar.sh/v1/checkouts/${checkoutId}`, {
     headers: { "Authorization": `Bearer ${ctx.env.POLAR_ACCESS_TOKEN}` }
   });
@@ -12357,6 +12367,16 @@ var onRequestGet = /* @__PURE__ */ __name2(async (ctx) => {
     headers: { "Authorization": `Bearer ${ctx.env.POLAR_ACCESS_TOKEN}` }
   });
   const order = await orderRes.json();
+  const { error: insertError } = await supabase.from("payments").upsert({
+    user_id: user.id,
+    order_id: order.id,
+    checkout_id: checkoutId,
+    amount: order.amount || 399
+    // fallback
+  }, { onConflict: "order_id" });
+  if (insertError) {
+    console.error("Payment insert error:", insertError);
+  }
   return new Response(JSON.stringify({ paid: true, orderId: order.id }), {
     headers: { "Content-Type": "application/json" }
   });

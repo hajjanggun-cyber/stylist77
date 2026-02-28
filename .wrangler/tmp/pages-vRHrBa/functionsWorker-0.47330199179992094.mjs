@@ -12123,6 +12123,16 @@ var onRequestGet = /* @__PURE__ */ __name(async (ctx) => {
   if (!checkoutId) {
     return new Response(JSON.stringify({ error: "checkout_id required" }), { status: 400 });
   }
+  const authHeader = ctx.request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+  const token = authHeader.replace("Bearer ", "");
+  const supabase = createClient(ctx.env.SUPABASE_URL, ctx.env.SUPABASE_SERVICE_KEY);
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
   const checkoutRes = await fetch(`https://api.polar.sh/v1/checkouts/${checkoutId}`, {
     headers: { "Authorization": `Bearer ${ctx.env.POLAR_ACCESS_TOKEN}` }
   });
@@ -12143,6 +12153,16 @@ var onRequestGet = /* @__PURE__ */ __name(async (ctx) => {
     headers: { "Authorization": `Bearer ${ctx.env.POLAR_ACCESS_TOKEN}` }
   });
   const order = await orderRes.json();
+  const { error: insertError } = await supabase.from("payments").upsert({
+    user_id: user.id,
+    order_id: order.id,
+    checkout_id: checkoutId,
+    amount: order.amount || 399
+    // fallback
+  }, { onConflict: "order_id" });
+  if (insertError) {
+    console.error("Payment insert error:", insertError);
+  }
   return new Response(JSON.stringify({ paid: true, orderId: order.id }), {
     headers: { "Content-Type": "application/json" }
   });
@@ -12674,7 +12694,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-Mea6Av/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-Zx6JZM/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -12706,7 +12726,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-Mea6Av/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-Zx6JZM/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
