@@ -714,9 +714,15 @@ function App() {
                 <div style={{ position: 'relative' }}>
                   <button
                     onClick={() => setShowUserMenu(v => !v)}
-                    style={{ width: 32, height: 32, borderRadius: '50%', background: '#111', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 4px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: 20, cursor: 'pointer' }}
                   >
-                    {user.email?.[0].toUpperCase()}
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#111', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {user.email?.[0].toUpperCase()}
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#333', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {user.email}
+                    </span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#888' }}>expand_more</span>
                   </button>
                   {showUserMenu && (
                     <>
@@ -889,9 +895,15 @@ function App() {
                 <div style={{ position: 'relative' }}>
                   <button
                     onClick={() => setShowUserMenu(v => !v)}
-                    style={{ width: 32, height: 32, borderRadius: '50%', background: '#111', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 4px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: 20, cursor: 'pointer' }}
                   >
-                    {user.email?.[0].toUpperCase()}
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#111', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {user.email?.[0].toUpperCase()}
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#333', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {user.email}
+                    </span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#888' }}>expand_more</span>
                   </button>
                   {showUserMenu && (
                     <>
@@ -1052,9 +1064,15 @@ function App() {
               <div style={{ position: 'relative' }}>
                 <button
                   onClick={() => setShowUserMenu(v => !v)}
-                  style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', color: '#111', border: '1px solid rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 4px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 20, cursor: 'pointer', backdropFilter: 'blur(4px)' }}
                 >
-                  {user.email?.[0].toUpperCase()}
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', color: '#111', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {user.email?.[0].toUpperCase()}
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {user.email}
+                  </span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'rgba(255,255,255,0.8)' }}>expand_more</span>
                 </button>
                 {showUserMenu && (
                   <>
