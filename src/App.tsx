@@ -370,10 +370,13 @@ function App() {
   const handleGuestMode = () => {
     const existingToken = localStorage.getItem('aura_guest_token')
     const usedToken = localStorage.getItem('aura_guest_used')
-    // 이미 사용한 토큰이 있으면 로그인 유도
+    // 이미 사용한 토큰이면 초기화 후 새 결제로 진행
     if (existingToken && existingToken === usedToken) {
-      alert(t('landing.guestUsed'))
-      setPage('auth')
+      localStorage.removeItem('aura_guest_token')
+      localStorage.removeItem('aura_guest_used')
+      setGuestToken(null)
+      setIsGuest(true)
+      setPage('form')
       return
     }
     // 결제는 했지만 아직 미사용 토큰이 있으면 복원
