@@ -37,6 +37,7 @@ function App() {
   const [authSuccess, setAuthSuccess] = useState('')
   const [authSubmitting, setAuthSubmitting] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showDrawer, setShowDrawer] = useState(false)
 
   // ── 마이페이지 상태 ──
   const [newPassword, setNewPassword] = useState('')
@@ -884,6 +885,64 @@ function App() {
   if (page === 'landing') {
     return (
       <div className="app">
+        {/* 드로어 */}
+        {showDrawer && (
+          <>
+            <div
+              onClick={() => setShowDrawer(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, backdropFilter: 'blur(2px)' }}
+            />
+            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderRadius: '20px 20px 0 0', zIndex: 201, padding: '12px 0 40px' }}>
+              {/* 핸들 */}
+              <div style={{ width: 36, height: 4, background: '#e0e0e0', borderRadius: 2, margin: '0 auto 24px' }} />
+
+              {/* 언어 토글 */}
+              <button
+                onClick={() => { toggleLang(); setShowDrawer(false) }}
+                style={{ width: '100%', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 14, background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, color: '#111', textAlign: 'left' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#666' }}>language</span>
+                {i18n.language.startsWith('ko') ? 'English' : '한국어'}
+              </button>
+
+              <div style={{ height: 1, background: '#f5f5f5', margin: '4px 0' }} />
+
+              <a href="/terms.html" style={{ width: '100%', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 14, fontSize: 15, color: '#111', textDecoration: 'none' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#666' }}>description</span>
+                {t('landing.terms')}
+              </a>
+              <a href="/refund.html" style={{ width: '100%', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 14, fontSize: 15, color: '#111', textDecoration: 'none' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#666' }}>receipt_long</span>
+                {t('landing.refund')}
+              </a>
+              <a href="/privacy.html" style={{ width: '100%', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 14, fontSize: 15, color: '#111', textDecoration: 'none' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#666' }}>shield</span>
+                {t('landing.privacy')}
+              </a>
+
+              {user && (
+                <>
+                  <div style={{ height: 1, background: '#f5f5f5', margin: '4px 0' }} />
+                  <button
+                    onClick={() => { setShowDrawer(false); setPasswordUpdateMsg(''); setDeleteConfirm(false); setPage('mypage') }}
+                    style={{ width: '100%', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 14, background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, color: '#111', textAlign: 'left' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#666' }}>manage_accounts</span>
+                    {t('mypage.title')}
+                  </button>
+                  <button
+                    onClick={() => { setShowDrawer(false); handleLogout() }}
+                    style={{ width: '100%', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 14, background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, color: '#e53e3e', textAlign: 'left' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>logout</span>
+                    {t('auth.logout')}
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        )}
+
         <div className="landing">
           <header className="landing__header">
             <span className="landing__logo-text">AURA</span>
@@ -934,7 +993,7 @@ function App() {
               ) : (
                 <button onClick={() => setPage('auth')} style={btnStyle}>{t('auth.login')}</button>
               )}
-              <button className="landing__header-menu" aria-label={t('landing.menu')}>
+              <button className="landing__header-menu" aria-label={t('landing.menu')} onClick={() => setShowDrawer(true)}>
                 <span className="material-symbols-outlined">menu</span>
               </button>
             </div>
