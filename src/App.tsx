@@ -226,7 +226,8 @@ function App() {
         setPage('landing')
         setDeleteConfirm(false)
       } else {
-        alert(t('mypage.delete_error'))
+        const data = await res.json().catch(() => ({})) as { error?: string }
+        alert(data.error || t('mypage.delete_error'))
       }
     } catch {
       alert(t('mypage.delete_error'))

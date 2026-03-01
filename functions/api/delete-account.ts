@@ -20,6 +20,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
   }
 
+  // 유저 관련 데이터 먼저 삭제 (외래키 제약 방지)
+  await supabase.from('payments').delete().eq('user_id', user.id)
+
   // 관리자 권한으로 유저 삭제
   const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id)
   if (deleteError) {
