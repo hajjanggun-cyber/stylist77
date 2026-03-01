@@ -118,7 +118,7 @@ function App() {
       if (event === 'SIGNED_IN') {
         const params = new URLSearchParams(window.location.search)
         if (!params.get('checkout_id')) {
-          setPage('form')
+          setPage('landing')
         }
       }
     })
@@ -169,7 +169,7 @@ function App() {
       if (isLoginMode) {
         const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword })
         if (error) throw error
-        setPage('form')
+        setPage('landing')
       } else {
         const { data, error } = await supabase.auth.signUp({ email: authEmail, password: authPassword })
         if (error) throw error
