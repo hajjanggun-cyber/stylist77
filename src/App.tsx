@@ -728,13 +728,13 @@ function App() {
                       <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#92400e' }}>
                         {i18n.language.startsWith('ko') ? '앱 내 브라우저에서는 Google 로그인이 차단됩니다' : 'Google login is blocked in in-app browsers'}
                       </p>
-                      <p style={{ margin: '0 0 8px', fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
+                      <p style={{ margin: '0 0 8px', fontSize: 12, color: '#78350f', lineHeight: 1.6 }}>
                         {i18n.language.startsWith('ko')
-                          ? 'Chrome 또는 Safari에서 아래 주소를 열어주세요.'
-                          : 'Please open the link below in Chrome or Safari.'}
+                          ? <>카카오톡 우측 상단 <strong>···</strong> → <strong>다른 브라우저로 열기</strong>를 눌러주세요.<br />또는 이메일로 로그인하세요.</>
+                          : <>In KakaoTalk, tap <strong>···</strong> at top right → <strong>Open in other browser</strong>.<br />Or use email login instead.</>}
                       </p>
                       <button
-                        onClick={() => { navigator.clipboard.writeText(window.location.href); alert(i18n.language.startsWith('ko') ? '주소가 복사되었습니다. Chrome/Safari에 붙여넣기 하세요.' : 'URL copied! Paste it in Chrome or Safari.') }}
+                        onClick={() => { navigator.clipboard.writeText(window.location.href); alert(i18n.language.startsWith('ko') ? '주소가 복사되었습니다. 다른 브라우저에 붙여넣기 하세요.' : 'URL copied! Paste it in Chrome or Safari.') }}
                         style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f59e0b', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span>

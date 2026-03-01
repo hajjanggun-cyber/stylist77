@@ -186,23 +186,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             }),
         });
 
-        // 2. 헤어스타일 이미지 생성 (OpenAI DALL-E 3)
+        // 2. 헤어스타일 이미지 생성 (gpt-image-1.5 /edits — 실제 사진 반영)
         let hairstyleFetch: Promise<Response> | null = null;
         if (imageBase64) {
             const hairstylePrompt = lang === 'en' ? HAIRSTYLE_PROMPT_EN : HAIRSTYLE_PROMPT_KO;
-            hairstyleFetch = fetch("https://api.openai.com/v1/images/generations", {
+            const imageBlob = dataURLtoBlob(imageBase64);
+            const formData = new FormData();
+            formData.append('image', imageBlob, 'photo.jpg');
+            formData.append('prompt', hairstylePrompt);
+            formData.append('model', 'gpt-image-1.5');
+            formData.append('n', '1');
+            formData.append('size', '1024x1024');
+            formData.append('quality', 'high');
+            hairstyleFetch = fetch("https://api.openai.com/v1/images/edits", {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${openaiApiKey}`,
-                    "Content-Type": "application/json",
                 },
-                body: JSON.stringify({
-                    prompt: hairstylePrompt,
-                    n: 1,
-                    size: "1024x1024",
-                    model: "gpt-image-1.5",
-                    quality: "high"
-                })
+                body: formData,
             });
         }
 
