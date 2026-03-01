@@ -67,47 +67,60 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Guest-Mode",
         "Content-Type": "application/json",
     };
 
-    // ── Auth: JWT 검증 ──
-    const authHeader = context.request.headers.get('Authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    const guestMode = context.request.headers.get('X-Guest-Mode') === 'true'
+
+    let supabase: ReturnType<typeof createClient> | null = null
+    let paymentId: string | null = null
+
+    if (!guestMode) {
+        // ── Auth: JWT 검증 ──
+        const authHeader = context.request.headers.get('Authorization')
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+        }
+        const token = authHeader.replace('Bearer ', '')
+
+        supabase = createClient(context.env.SUPABASE_URL, context.env.SUPABASE_SERVICE_KEY)
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+        if (authError || !user) {
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+        }
+
+        // ── Payment: 미사용 결제 확인 ──
+        const { data: payments, error: paymentFetchError } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('user_id', user.id)
+            .is('used_at', null)
+            .limit(1)
+
+        if (paymentFetchError || !payments || payments.length === 0) {
+            return new Response(JSON.stringify({ error: 'No valid payment found' }), { status: 402, headers: corsHeaders })
+        }
+
+        paymentId = payments[0].id as string
+
+        // ── Payment: used_at atomic 업데이트 (double-use 방지) ──
+        const { error: updateError } = await supabase
+            .from('payments')
+            .update({ used_at: new Date().toISOString() })
+            .eq('id', paymentId)
+            .is('used_at', null)
+
+        if (updateError) {
+            return new Response(JSON.stringify({ error: 'Payment already used or update failed' }), { status: 402, headers: corsHeaders })
+        }
     }
-    const token = authHeader.replace('Bearer ', '')
 
-    const supabase = createClient(context.env.SUPABASE_URL, context.env.SUPABASE_SERVICE_KEY)
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
-    }
-
-    // ── Payment: 미사용 결제 확인 ──
-    const { data: payments, error: paymentFetchError } = await supabase
-        .from('payments')
-        .select('id')
-        .eq('user_id', user.id)
-        .is('used_at', null)
-        .limit(1)
-
-    if (paymentFetchError || !payments || payments.length === 0) {
-        return new Response(JSON.stringify({ error: 'No valid payment found' }), { status: 402, headers: corsHeaders })
-    }
-
-    const paymentId = payments[0].id as string
-
-    // ── Payment: used_at atomic 업데이트 (double-use 방지) ──
-    const { error: updateError } = await supabase
-        .from('payments')
-        .update({ used_at: new Date().toISOString() })
-        .eq('id', paymentId)
-        .is('used_at', null)
-
-    if (updateError) {
-        return new Response(JSON.stringify({ error: 'Payment already used or update failed' }), { status: 402, headers: corsHeaders })
+    const rollback = async () => {
+        if (supabase && paymentId) {
+            await supabase.from('payments').update({ used_at: null }).eq('id', paymentId)
+        }
     }
 
     try {
@@ -116,8 +129,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         if (!height || !weight) {
             const msg = lang === 'en' ? "Please enter your height and weight." : "키와 몸무게를 입력해주세요.";
-            // 결제 롤백
-            await supabase.from('payments').update({ used_at: null }).eq('id', paymentId)
+            await rollback()
             return new Response(JSON.stringify({ error: msg }), {
                 status: 400,
                 headers: corsHeaders,
@@ -127,8 +139,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         const geminiApiKey = context.env.GEMINI_API_KEY;
         if (!geminiApiKey) {
             const msg = lang === 'en' ? "Gemini API key is not configured." : "Gemini API Key가 설정되지 않았습니다.";
-            // 결제 롤백
-            await supabase.from('payments').update({ used_at: null }).eq('id', paymentId)
+            await rollback()
             return new Response(JSON.stringify({ error: msg }), {
                 status: 500,
                 headers: corsHeaders,
@@ -200,8 +211,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             const errorData = await geminiResponse.json() as any;
             console.error("Gemini API Error:", errorData);
             const fallback = lang === 'en' ? "Gemini API error occurred." : "Gemini API 오류가 발생했습니다.";
-            // 분석 실패 → 결제 롤백
-            await supabase.from('payments').update({ used_at: null }).eq('id', paymentId)
+            await rollback()
             return new Response(
                 JSON.stringify({ error: errorData.error?.message || fallback }),
                 { status: geminiResponse.status, headers: corsHeaders }
@@ -223,8 +233,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         });
     } catch (error) {
         console.error("Function error:", error);
-        // 예외 발생 시 결제 롤백
-        await supabase.from('payments').update({ used_at: null }).eq('id', paymentId)
+        await rollback()
         return new Response(JSON.stringify({ error: "서버 오류가 발생했습니다." }), {
             status: 500,
             headers: corsHeaders,

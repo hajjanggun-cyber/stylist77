@@ -10,6 +10,8 @@
     },
     "verifying": "결제 확인 중...",
     "cta": "스타일 분석 시작하기",
+    "guestCta": "회원가입 없이 1회 무료 체험",
+    "guestUsed": "이미 무료 체험을 사용하셨습니다. 로그인 후 이용해주세요.",
     "note": "로그인 필요 · 분석 1회당 결제",
     "terms": "서비스 약관",
     "refund": "환불 규정",
@@ -110,6 +112,10 @@
     "delete_cancel": "취소",
     "delete_confirm_btn": "계정 삭제",
     "delete_error": "계정 삭제에 실패했습니다. 다시 시도해주세요."
+  },
+  "guest": {
+    "signupBanner": "마음에 드셨나요? 회원가입하고 계속 분석해보세요.",
+    "signupBtn": "무료 회원가입"
   },
   "auth": {
     "login": "로그인",

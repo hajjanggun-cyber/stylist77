@@ -38,6 +38,7 @@ function App() {
   const [authSubmitting, setAuthSubmitting] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
+  const [isGuest, setIsGuest] = useState(false)
 
   // ── 비밀번호 찾기 상태 ──
   const [showForgotForm, setShowForgotForm] = useState(false)
@@ -291,6 +292,7 @@ function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setShowUserMenu(false)
+    setIsGuest(false)
     setPage('landing')
     setResult('')
     setHairstyleImage(null)
@@ -304,6 +306,7 @@ function App() {
     setShowUserMenu(false)
     setDeleteConfirm(false)
     setPasswordUpdateMsg('')
+    setIsGuest(false)
     setPage('landing')
     setResult('')
     setHairstyleImage(null)
@@ -314,6 +317,16 @@ function App() {
     setHasPaid(false)
     setChatMessages([])
     setChatInput('')
+  }
+
+  const handleGuestMode = () => {
+    if (localStorage.getItem('aura_guest_used')) {
+      alert(t('landing.guestUsed'))
+      setPage('auth')
+      return
+    }
+    setIsGuest(true)
+    setPage('form')
   }
 
   // ── 파일 처리 ──
@@ -334,27 +347,31 @@ function App() {
   }
 
   // ── 분석 실행 ──
-  const runAnalysis = async (h: string, w: string, sg: StyleGoalId, img: string | null) => {
+  const runAnalysis = async (h: string, w: string, sg: StyleGoalId, img: string | null, guest = false) => {
     setLoading(true)
     setResult('')
     setHairstyleImage(null)
     const lang = i18n.language.startsWith('ko') ? 'ko' : 'en'
 
-    const { data: { session: freshSession } } = await supabase.auth.getSession()
-    if (!freshSession) {
-      setResult(t('error.networkError'))
-      setLoading(false)
-      return
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+
+    if (guest) {
+      headers['X-Guest-Mode'] = 'true'
+    } else {
+      const { data: { session: freshSession } } = await supabase.auth.getSession()
+      if (!freshSession) {
+        setResult(t('error.networkError'))
+        setLoading(false)
+        return
+      }
+      headers['Authorization'] = `Bearer ${freshSession.access_token}`
     }
 
     try {
       const goalValue = t(`styleGoalValue.${sg}`)
       const response = await fetch('/api/analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${freshSession.access_token}`,
-        },
+        headers,
         body: JSON.stringify({ height: h, weight: w, styleGoal: goalValue, imageBase64: img || undefined, lang }),
       })
       const data = await response.json() as { result?: string; error?: string; hairstyleImage?: string }
@@ -370,7 +387,11 @@ function App() {
       setResult(data.result || t('result.noResult'))
       setHairstyleImage(data.hairstyleImage || null)
       setAnalysisSuccess(true)
-      setHasPaid(false)
+      if (guest) {
+        localStorage.setItem('aura_guest_used', 'true')
+      } else {
+        setHasPaid(false)
+      }
     } catch {
       setResult(t('error.networkError'))
       setAnalysisSuccess(false)
@@ -413,6 +434,11 @@ function App() {
   // ── 분석 버튼 클릭 ──
   const analyzeStyle = async () => {
     if (!height || !weight) { alert(t('error.noMeasurements')); return }
+
+    if (isGuest) {
+      await runAnalysis(height, weight, styleGoal, selectedImage, true)
+      return
+    }
 
     if (!session) {
       setPage('auth')
@@ -1211,6 +1237,33 @@ function App() {
               </button>
             )}
 
+            {!session && !verifying && (
+              <button
+                onClick={handleGuestMode}
+                style={{
+                  marginTop: 10,
+                  width: '100%',
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.35)',
+                  color: 'rgba(255,255,255,0.75)',
+                  padding: '12px 20px',
+                  borderRadius: 50,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  letterSpacing: '0.01em',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>explore</span>
+                {t('landing.guestCta')}
+              </button>
+            )}
+
             <p className="landing__note">{t('landing.note')}</p>
 
             <div className="landing__legal">
@@ -1453,6 +1506,40 @@ function App() {
           </section>
         )}
 
+        {analysisSuccess && isGuest && (
+          <section style={{ padding: '0 20px 0' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 16,
+              padding: '20px 20px',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>✨</div>
+              <p style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>
+                {t('guest.signupBanner')}
+              </p>
+              <button
+                onClick={() => { setIsGuest(false); setPage('auth') }}
+                style={{
+                  marginTop: 14,
+                  background: '#fff',
+                  color: '#0f3460',
+                  border: 'none',
+                  padding: '11px 28px',
+                  borderRadius: 50,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  letterSpacing: '0.01em',
+                }}
+              >
+                {t('guest.signupBtn')}
+              </button>
+            </div>
+          </section>
+        )}
+
         {analysisSuccess && (
           <section className="result-actions">
             <button className="result-action-btn" onClick={saveAsImage} disabled={saving || sharing}>
@@ -1479,12 +1566,12 @@ function App() {
           <section className="section-cta">
             <button className="cta-btn" onClick={analyzeStyle} disabled={loading}>
               {loading
-                ? <><span className="loader" />&nbsp;{hasPaid ? t('button.analyzing') : t('button.redirecting')}</>
-                : hasPaid ? t('button.analyze') : t('button.analyzeWithPayment')
+                ? <><span className="loader" />&nbsp;{t('button.analyzing')}</>
+                : isGuest || hasPaid ? t('button.analyze') : t('button.analyzeWithPayment')
               }
             </button>
             <p className="cta-note">
-              {hasPaid ? t('cta.noteAfterPaid') : t('cta.noteBefore')}
+              {isGuest || hasPaid ? t('cta.noteAfterPaid') : t('cta.noteBefore')}
             </p>
           </section>
         )}
