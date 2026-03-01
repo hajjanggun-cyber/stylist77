@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
 interface Env {
-    GEMINI_API_KEY: string;
     OPENAI_API_KEY: string;
     SUPABASE_URL: string;
     SUPABASE_SERVICE_KEY: string;
@@ -30,7 +29,6 @@ function dataURLtoBlob(dataUrl: string): Blob {
 
 const SYSTEM_PROMPT_KO = `당신은 10년 경력의 전문 퍼스널 스타일리스트 'Aura'입니다.
 사용자의 신체 정보와 사진을 바탕으로 구체적이고 실용적인 스타일 컨설팅 보고서를 작성해주세요.
-Gemini 3.1 Pro의 강력한 분석 능력을 사용하여 체형의 미세한 특징까지 잡아내어 조언해주세요.
 
 보고서는 다음 항목을 포함해야 합니다:
 1. 체형 분석 (상세히)
@@ -46,7 +44,6 @@ Gemini 3.1 Pro의 강력한 분석 능력을 사용하여 체형의 미세한 �
 
 const SYSTEM_PROMPT_EN = `You are 'Aura', a professional personal stylist with 10 years of experience.
 Based on the user's body measurements and photo, write a detailed and practical style consulting report.
-Utilize the advanced reasoning of Gemini 3.1 Pro to analyze subtle body characteristics and provide professional advice.
 
 The report must include the following sections:
 1. Detailed Body Type Analysis
@@ -151,9 +148,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             });
         }
 
-        const geminiApiKey = context.env.GEMINI_API_KEY;
-        if (!geminiApiKey) {
-            const msg = lang === 'en' ? "Gemini API key is not configured." : "Gemini API Key가 설정되지 않았습니다.";
+        const openaiApiKey = context.env.OPENAI_API_KEY;
+        if (!openaiApiKey) {
+            const msg = lang === 'en' ? "OpenAI API key is not configured." : "OpenAI API Key가 설정되지 않았습니다.";
             await rollback()
             return new Response(JSON.stringify({ error: msg }), {
                 status: 500,
@@ -166,46 +163,37 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             ? `Height: ${height}cm, Weight: ${weight}kg, Preferred Style: ${styleGoal || 'General'}\nAnalyze this person's body type and provide a style report.`
             : `키: ${height}cm, 몸무게: ${weight}kg, 선호 스타일: ${styleGoal || '일반'}\n이 사용자의 체형을 분석하고 스타일 리포트를 작성해주세요.`;
 
-        // 1. Gemini 3.1 Pro 텍스트/이미지 분석
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${geminiApiKey}`;
-        
-        const contents: any[] = [{
-            parts: [{ text: `${systemPrompt}\n\n${userText}` }]
-        }];
-
+        // 1. OpenAI GPT-4o 텍스트/이미지 분석
+        const userContent: any[] = [{ type: 'text', text: userText }];
         if (imageBase64) {
-            const base64Data = imageBase64.split(',')[1];
-            const mimeType = imageBase64.split(',')[0].split(':')[1].split(';')[0];
-            contents[0].parts.push({
-                inlineData: {
-                    mimeType: mimeType,
-                    data: base64Data
-                }
-            });
+            userContent.push({ type: 'image_url', image_url: { url: imageBase64, detail: 'high' } });
         }
 
-        const textFetch = fetch(geminiUrl, {
+        const textFetch = fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                Authorization: `Bearer ${openaiApiKey}`,
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({
-                contents,
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 2048,
-                    topP: 0.95,
-                    topK: 40
-                }
+                model: "gpt-4o",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userContent },
+                ],
+                max_tokens: 2048,
+                temperature: 0.7,
             }),
         });
 
         // 2. 헤어스타일 이미지 생성 (OpenAI DALL-E 3)
         let hairstyleFetch: Promise<Response> | null = null;
-        if (imageBase64 && context.env.OPENAI_API_KEY) {
+        if (imageBase64) {
             const hairstylePrompt = lang === 'en' ? HAIRSTYLE_PROMPT_EN : HAIRSTYLE_PROMPT_KO;
             hairstyleFetch = fetch("https://api.openai.com/v1/images/generations", {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${context.env.OPENAI_API_KEY}`,
+                    Authorization: `Bearer ${openaiApiKey}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
@@ -217,24 +205,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             });
         }
 
-        const [geminiResponse, hairstyleResponse] = await Promise.all([
+        const [textResponse, hairstyleResponse] = await Promise.all([
             textFetch,
             hairstyleFetch,
         ]);
 
-        if (!geminiResponse.ok) {
-            const errorData = await geminiResponse.json() as any;
-            console.error("Gemini API Error:", errorData);
-            const fallback = lang === 'en' ? "Gemini API error occurred." : "Gemini API 오류가 발생했습니다.";
+        if (!textResponse.ok) {
+            const errorData = await textResponse.json() as any;
+            console.error("OpenAI API Error:", errorData);
+            const fallback = lang === 'en' ? "OpenAI API error occurred." : "OpenAI API 오류가 발생했습니다.";
             await rollback()
             return new Response(
                 JSON.stringify({ error: errorData.error?.message || fallback }),
-                { status: geminiResponse.status, headers: corsHeaders }
+                { status: textResponse.status, headers: corsHeaders }
             );
         }
 
-        const geminiData = await geminiResponse.json() as any;
-        const result = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || (lang === 'en' ? 'No result.' : '결과가 없습니다.');
+        const textData = await textResponse.json() as any;
+        const result = textData.choices?.[0]?.message?.content || (lang === 'en' ? 'No result.' : '결과가 없습니다.');
 
         let hairstyleImage: string | null = null;
         if (hairstyleResponse && hairstyleResponse.ok) {
