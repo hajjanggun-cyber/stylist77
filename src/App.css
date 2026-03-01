@@ -478,6 +478,7 @@ a      { text-decoration: none; color: inherit; }
   border-color: rgba(29,86,201,0.4);
   overflow: hidden;
   cursor: default;
+  min-height: 0;
 }
 
 .upload-zone__icon-wrap {
@@ -523,10 +524,10 @@ a      { text-decoration: none; color: inherit; }
 
 .upload-zone__preview {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   border-radius: calc(var(--radius-xl) - 2px);
-  max-height: 320px;
+  max-height: 520px;
   display: block;
 }
 
