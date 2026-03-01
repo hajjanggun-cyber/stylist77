@@ -105,6 +105,11 @@
     "error_rate_limit": "요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
     "success_signup": "회원가입이 완료되었습니다!\n입력하신 이메일로 발송된 인증 링크를 확인해주세요.",
     "or": "또는",
-    "google_login": "Google로 계속하기"
+    "google_login": "Google로 계속하기",
+    "signed_in_as": "로그인된 계정",
+    "heading_login": "다시 오셨군요",
+    "subheading_login": "AURA AI 스타일리스트를 계속 이용하세요",
+    "heading_signup": "계정 만들기",
+    "subheading_signup": "AI 퍼스널 스타일리스트를 시작해보세요"
   }
 }

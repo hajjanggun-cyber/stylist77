@@ -36,6 +36,7 @@ function App() {
   const [authError, setAuthError] = useState('')
   const [authSuccess, setAuthSuccess] = useState('')
   const [authSubmitting, setAuthSubmitting] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
   // ── 폼 상태 ──
   const [height, setHeight] = useState('')
@@ -199,6 +200,7 @@ function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    setShowUserMenu(false)
     setPage('landing')
     setResult('')
     setHairstyleImage(null)
@@ -209,6 +211,7 @@ function App() {
   }
 
   const goToLanding = () => {
+    setShowUserMenu(false)
     setPage('landing')
     setResult('')
     setHairstyleImage(null)
@@ -429,6 +432,16 @@ function App() {
 
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
             <div style={{ width: '100%', maxWidth: 400 }}>
+              {/* 헤딩 */}
+              <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>
+                  {isLoginMode ? t('auth.heading_login') : t('auth.heading_signup')}
+                </h2>
+                <p style={{ margin: '8px 0 0', fontSize: 14, color: '#888' }}>
+                  {isLoginMode ? t('auth.subheading_login') : t('auth.subheading_signup')}
+                </p>
+              </div>
+
               {/* 탭 */}
               <div style={{ display: 'flex', borderBottom: '1px solid #e0e0e0', marginBottom: 28 }}>
                 {(['login', 'signup'] as const).map(tab => (
@@ -632,7 +645,31 @@ function App() {
                 {i18n.language.startsWith('ko') ? 'EN' : '한국어'}
               </button>
               {user ? (
-                <button onClick={handleLogout} style={btnStyle}>{t('auth.logout')}</button>
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setShowUserMenu(v => !v)}
+                    style={{ width: 32, height: 32, borderRadius: '50%', background: '#111', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    {user.email?.[0].toUpperCase()}
+                  </button>
+                  {showUserMenu && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowUserMenu(false)} />
+                      <div style={{ position: 'absolute', right: 0, top: 40, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', minWidth: 220, zIndex: 100, overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0' }}>
+                          <p style={{ margin: 0, fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('auth.signed_in_as')}</p>
+                          <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600, color: '#111', wordBreak: 'break-all' }}>{user.email}</p>
+                        </div>
+                        <button
+                          onClick={() => { setShowUserMenu(false); handleLogout() }}
+                          style={{ width: '100%', padding: '11px 16px', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, color: '#e53e3e', cursor: 'pointer', fontWeight: 500 }}
+                        >
+                          {t('auth.logout')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               ) : (
                 <button onClick={() => setPage('auth')} style={btnStyle}>{t('auth.login')}</button>
               )}
@@ -763,12 +800,31 @@ function App() {
               {i18n.language.startsWith('ko') ? 'EN' : '한국어'}
             </button>
             {user && (
-              <button
-                onClick={handleLogout}
-                style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.4)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', backdropFilter: 'blur(4px)' }}
-              >
-                {t('auth.logout')}
-              </button>
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowUserMenu(v => !v)}
+                  style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', color: '#111', border: '1px solid rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}
+                >
+                  {user.email?.[0].toUpperCase()}
+                </button>
+                {showUserMenu && (
+                  <>
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowUserMenu(false)} />
+                    <div style={{ position: 'absolute', right: 0, top: 40, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', minWidth: 220, zIndex: 100, overflow: 'hidden' }}>
+                      <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0' }}>
+                        <p style={{ margin: 0, fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('auth.signed_in_as')}</p>
+                        <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600, color: '#111', wordBreak: 'break-all' }}>{user.email}</p>
+                      </div>
+                      <button
+                        onClick={() => { setShowUserMenu(false); handleLogout() }}
+                        style={{ width: '100%', padding: '11px 16px', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, color: '#e53e3e', cursor: 'pointer', fontWeight: 500 }}
+                      >
+                        {t('auth.logout')}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
