@@ -486,7 +486,7 @@ function App() {
               </button>
 
               {/* OR 구분선 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
                 <div style={{ flex: 1, height: 1, background: '#e0e0e0' }} />
                 <span style={{ fontSize: 12, color: '#999', whiteSpace: 'nowrap' }}>{t('auth.or')}</span>
                 <div style={{ flex: 1, height: 1, background: '#e0e0e0' }} />
