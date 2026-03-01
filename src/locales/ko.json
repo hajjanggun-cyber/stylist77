@@ -103,6 +103,8 @@
     "error_already_registered": "이미 가입된 이메일입니다.",
     "error_password_length": "비밀번호는 6자 이상이어야 합니다.",
     "error_rate_limit": "요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
-    "success_signup": "회원가입이 완료되었습니다!\n입력하신 이메일로 발송된 인증 링크를 확인해주세요."
+    "success_signup": "회원가입이 완료되었습니다!\n입력하신 이메일로 발송된 인증 링크를 확인해주세요.",
+    "or": "또는",
+    "google_login": "Google로 계속하기"
   }
 }

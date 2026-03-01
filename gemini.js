@@ -24,7 +24,7 @@ const chat = model.startChat({
     history: [],
 });
 
-console.log("Gemini 2.0 CLI - 'exit'을 입력하면 종료됩니다.");
+console.log("Gemini 3.1 Pro CLI - 'exit'을 입력하면 종료됩니다.");
 
 async function ask() {
     rl.question('> ', async (input) => {
