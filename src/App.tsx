@@ -6,7 +6,7 @@ import { supabase } from './lib/supabase'
 import type { Session, User } from '@supabase/supabase-js'
 import './App.css'
 
-type Page = 'landing' | 'auth' | 'form'
+type Page = 'landing' | 'auth' | 'form' | 'mypage'
 type StyleGoalId = 'casual' | 'formal' | 'trendy' | 'date'
 
 interface StyleGoalOption {
@@ -37,6 +37,14 @@ function App() {
   const [authSuccess, setAuthSuccess] = useState('')
   const [authSubmitting, setAuthSubmitting] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+
+  // ── 마이페이지 상태 ──
+  const [newPassword, setNewPassword] = useState('')
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
+  const [passwordUpdateLoading, setPasswordUpdateLoading] = useState(false)
+  const [passwordUpdateMsg, setPasswordUpdateMsg] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // ── 폼 상태 ──
   const [height, setHeight] = useState('')
@@ -189,6 +197,44 @@ function App() {
     }
   }
 
+  const handlePasswordUpdate = async () => {
+    if (!newPassword || !newPasswordConfirm) { setPasswordUpdateMsg(t('mypage.error_empty')); return }
+    if (newPassword !== newPasswordConfirm) { setPasswordUpdateMsg(t('mypage.error_mismatch')); return }
+    if (newPassword.length < 6) { setPasswordUpdateMsg(t('mypage.error_too_short')); return }
+    setPasswordUpdateLoading(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) {
+      setPasswordUpdateMsg(error.message)
+    } else {
+      setPasswordUpdateMsg(t('mypage.password_updated'))
+      setNewPassword('')
+      setNewPasswordConfirm('')
+    }
+    setPasswordUpdateLoading(false)
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true)
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession()
+      const res = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${s?.access_token}` },
+      })
+      if (res.ok) {
+        await supabase.auth.signOut()
+        setPage('landing')
+        setDeleteConfirm(false)
+      } else {
+        alert(t('mypage.delete_error'))
+      }
+    } catch {
+      alert(t('mypage.delete_error'))
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
   const handleGoogleLogin = async () => {
     setAuthError('')
     const { error } = await supabase.auth.signInWithOAuth({
@@ -212,6 +258,8 @@ function App() {
 
   const goToLanding = () => {
     setShowUserMenu(false)
+    setDeleteConfirm(false)
+    setPasswordUpdateMsg('')
     setPage('landing')
     setResult('')
     setHairstyleImage(null)
@@ -632,6 +680,198 @@ function App() {
   }
 
   // ══════════════════════════════════════════
+  // ── My Page ──
+  // ══════════════════════════════════════════
+  if (page === 'mypage') {
+    const isEmailUser = user?.app_metadata?.provider === 'email'
+    const joinDate = user?.created_at
+      ? new Date(user.created_at).toLocaleDateString(
+          i18n.language.startsWith('ko') ? 'ko-KR' : 'en-US',
+          { year: 'numeric', month: 'long', day: 'numeric' }
+        )
+      : '-'
+
+    const cardStyle: React.CSSProperties = {
+      background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: 20, marginBottom: 16,
+    }
+    const sectionLabelStyle: React.CSSProperties = {
+      margin: '0 0 16px', fontSize: 11, fontWeight: 700, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em',
+    }
+    const rowStyle: React.CSSProperties = {
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    }
+    const dividerStyle: React.CSSProperties = { height: 1, background: '#f0f0f0', margin: '10px 0' }
+
+    return (
+      <div className="app">
+        <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+          <header className="landing__header" style={{ background: '#fff', borderBottom: '1px solid #ebebeb', position: 'sticky', top: 0, zIndex: 10 }}>
+            <span className="landing__logo-text" onClick={goToLanding} style={{ cursor: 'pointer' }}>AURA</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={toggleLang} style={btnStyle}>{i18n.language.startsWith('ko') ? 'EN' : '한국어'}</button>
+              {user && (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setShowUserMenu(v => !v)}
+                    style={{ width: 32, height: 32, borderRadius: '50%', background: '#111', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    {user.email?.[0].toUpperCase()}
+                  </button>
+                  {showUserMenu && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowUserMenu(false)} />
+                      <div style={{ position: 'absolute', right: 0, top: 40, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', minWidth: 220, zIndex: 100, overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0' }}>
+                          <p style={{ margin: 0, fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('auth.signed_in_as')}</p>
+                          <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600, color: '#111', wordBreak: 'break-all' }}>{user.email}</p>
+                        </div>
+                        <button
+                          onClick={() => { setShowUserMenu(false); setPasswordUpdateMsg(''); setDeleteConfirm(false); setPage('mypage') }}
+                          style={{ width: '100%', padding: '11px 16px', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, color: '#111', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>manage_accounts</span>
+                          {t('mypage.title')}
+                        </button>
+                        <button
+                          onClick={() => { setShowUserMenu(false); handleLogout() }}
+                          style={{ width: '100%', padding: '11px 16px', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, color: '#e53e3e', cursor: 'pointer', fontWeight: 500, borderTop: '1px solid #f5f5f5', display: 'flex', alignItems: 'center', gap: 8 }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
+                          {t('auth.logout')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </header>
+
+          <div style={{ maxWidth: 480, margin: '0 auto', padding: '28px 20px 60px' }}>
+            <button
+              onClick={() => setPage(session ? 'form' : 'landing')}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#888', fontSize: 13, cursor: 'pointer', padding: '0 0 20px', fontWeight: 500 }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_back</span>
+              {t('mypage.back')}
+            </button>
+            <h1 style={{ margin: '0 0 24px', fontSize: 22, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>
+              {t('mypage.title')}
+            </h1>
+
+            {/* 내 정보 */}
+            <div style={cardStyle}>
+              <h3 style={sectionLabelStyle}>{t('mypage.my_info')}</h3>
+              <div style={rowStyle}>
+                <span style={{ fontSize: 13, color: '#666' }}>{t('mypage.email')}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#111', wordBreak: 'break-all', textAlign: 'right', maxWidth: '60%' }}>{user?.email}</span>
+              </div>
+              <div style={dividerStyle} />
+              <div style={rowStyle}>
+                <span style={{ fontSize: 13, color: '#666' }}>{t('mypage.joined')}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{joinDate}</span>
+              </div>
+              <div style={dividerStyle} />
+              <div style={rowStyle}>
+                <span style={{ fontSize: 13, color: '#666' }}>{t('mypage.provider')}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>
+                  {isEmailUser ? t('mypage.provider_email') : t('mypage.provider_google')}
+                </span>
+              </div>
+            </div>
+
+            {/* 비밀번호 변경 */}
+            <div style={cardStyle}>
+              <h3 style={sectionLabelStyle}>{t('mypage.change_password')}</h3>
+              {isEmailUser ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#555', letterSpacing: '0.05em' }}>
+                      {t('mypage.new_password').toUpperCase()}
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={e => { setNewPassword(e.target.value); setPasswordUpdateMsg('') }}
+                      placeholder="••••••••"
+                      className="metric-input"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#555', letterSpacing: '0.05em' }}>
+                      {t('mypage.confirm_password').toUpperCase()}
+                    </label>
+                    <input
+                      type="password"
+                      value={newPasswordConfirm}
+                      onChange={e => { setNewPasswordConfirm(e.target.value); setPasswordUpdateMsg('') }}
+                      placeholder="••••••••"
+                      className="metric-input"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  {passwordUpdateMsg && (
+                    <p style={{ margin: 0, fontSize: 13, color: passwordUpdateMsg === t('mypage.password_updated') ? '#047857' : '#e53e3e' }}>
+                      {passwordUpdateMsg}
+                    </p>
+                  )}
+                  <button onClick={handlePasswordUpdate} disabled={passwordUpdateLoading} className="landing__cta" style={{ marginTop: 4 }}>
+                    {passwordUpdateLoading
+                      ? <><span className="loader" style={{ borderTopColor: '#fff' }} />&nbsp;{t('mypage.update_btn')}</>
+                      : t('mypage.update_btn')
+                    }
+                  </button>
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: '#888', lineHeight: 1.6 }}>{t('mypage.oauth_no_password')}</p>
+              )}
+            </div>
+
+            {/* 계정 탈퇴 */}
+            <div style={{ ...cardStyle, border: '1px solid #ffe0e0', marginBottom: 0 }}>
+              <h3 style={{ ...sectionLabelStyle, color: '#e53e3e' }}>{t('mypage.delete_account')}</h3>
+              <p style={{ margin: '0 0 16px', fontSize: 13, color: '#888', lineHeight: 1.6 }}>{t('mypage.delete_warning')}</p>
+              {!deleteConfirm ? (
+                <button
+                  onClick={() => setDeleteConfirm(true)}
+                  style={{ padding: '10px 20px', background: 'none', border: '1px solid #e53e3e', color: '#e53e3e', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {t('mypage.delete_btn')}
+                </button>
+              ) : (
+                <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 8, padding: 16 }}>
+                  <p style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 600, color: '#c53030' }}>
+                    {t('mypage.delete_confirm_prompt')}
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => setDeleteConfirm(false)}
+                      style={{ flex: 1, padding: '10px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: 6, fontSize: 13, fontWeight: 600, color: '#666', cursor: 'pointer' }}
+                    >
+                      {t('mypage.delete_cancel')}
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleteLoading}
+                      style={{ flex: 1, padding: '10px', background: '#e53e3e', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      {deleteLoading
+                        ? <span className="loader" style={{ borderTopColor: '#fff', width: 16, height: 16 }} />
+                        : t('mypage.delete_confirm_btn')
+                      }
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ══════════════════════════════════════════
   // ── Landing Page ──
   // ══════════════════════════════════════════
   if (page === 'landing') {
@@ -661,9 +901,17 @@ function App() {
                           <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600, color: '#111', wordBreak: 'break-all' }}>{user.email}</p>
                         </div>
                         <button
-                          onClick={() => { setShowUserMenu(false); handleLogout() }}
-                          style={{ width: '100%', padding: '11px 16px', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, color: '#e53e3e', cursor: 'pointer', fontWeight: 500 }}
+                          onClick={() => { setShowUserMenu(false); setPasswordUpdateMsg(''); setDeleteConfirm(false); setPage('mypage') }}
+                          style={{ width: '100%', padding: '11px 16px', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, color: '#111', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}
                         >
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>manage_accounts</span>
+                          {t('mypage.title')}
+                        </button>
+                        <button
+                          onClick={() => { setShowUserMenu(false); handleLogout() }}
+                          style={{ width: '100%', padding: '11px 16px', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, color: '#e53e3e', cursor: 'pointer', fontWeight: 500, borderTop: '1px solid #f5f5f5', display: 'flex', alignItems: 'center', gap: 8 }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
                           {t('auth.logout')}
                         </button>
                       </div>
@@ -1017,9 +1265,9 @@ function App() {
           <span className="material-symbols-outlined">checkroom</span>
           <span className="bottom-nav__label">{t('nav.wardrobe')}</span>
         </a>
-        <a className="bottom-nav__item" href="#" onClick={(e) => { e.preventDefault(); session ? handleLogout() : setPage('auth') }}>
-          <span className="material-symbols-outlined">{session ? 'logout' : 'person'}</span>
-          <span className="bottom-nav__label">{session ? t('auth.logout') : t('nav.profile')}</span>
+        <a className="bottom-nav__item" href="#" onClick={(e) => { e.preventDefault(); session ? setPage('mypage') : setPage('auth') }}>
+          <span className="material-symbols-outlined">{session ? 'manage_accounts' : 'person'}</span>
+          <span className="bottom-nav__label">{session ? t('mypage.title') : t('nav.profile')}</span>
         </a>
       </nav>
     </div>
