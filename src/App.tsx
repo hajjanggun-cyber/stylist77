@@ -609,6 +609,13 @@ function App() {
     i18n.changeLanguage(i18n.language.startsWith('ko') ? 'en' : 'ko')
   }
 
+  const isInAppBrowser = (): boolean => {
+    const ua = navigator.userAgent
+    return /KAKAOTALK|Line|Instagram|FBAN|FBIOS|FB_IAB|Naver|DaumApps|NaverApp|everytime/i.test(ua) ||
+      (/iPhone|iPad/.test(ua) && /AppleWebKit/.test(ua) && !/Safari/.test(ua)) ||
+      (/Android/.test(ua) && /wv\b/.test(ua))
+  }
+
   const btnStyle = {
     background: 'none' as const,
     border: '1px solid #ccc',
@@ -711,6 +718,32 @@ function App() {
                   </button>
                 ))}
               </div>
+
+              {/* 인앱 브라우저 경고 */}
+              {isInAppBrowser() && (
+                <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '12px 14px', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#d97706', flexShrink: 0, marginTop: 1 }}>warning</span>
+                    <div>
+                      <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#92400e' }}>
+                        {i18n.language.startsWith('ko') ? '앱 내 브라우저에서는 Google 로그인이 차단됩니다' : 'Google login is blocked in in-app browsers'}
+                      </p>
+                      <p style={{ margin: '0 0 8px', fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
+                        {i18n.language.startsWith('ko')
+                          ? 'Chrome 또는 Safari에서 아래 주소를 열어주세요.'
+                          : 'Please open the link below in Chrome or Safari.'}
+                      </p>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(window.location.href); alert(i18n.language.startsWith('ko') ? '주소가 복사되었습니다. Chrome/Safari에 붙여넣기 하세요.' : 'URL copied! Paste it in Chrome or Safari.') }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f59e0b', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span>
+                        {i18n.language.startsWith('ko') ? '주소 복사하기' : 'Copy URL'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Google 로그인 버튼 */}
               <button
@@ -1330,28 +1363,42 @@ function App() {
                 style={{
                   marginTop: 10,
                   width: '100%',
-                  background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.35)',
-                  color: 'rgba(255,255,255,0.75)',
-                  padding: '12px 20px',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  border: 'none',
+                  color: '#fff',
+                  padding: '13px 20px',
                   borderRadius: 50,
                   fontSize: 14,
-                  fontWeight: 500,
+                  fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
                   letterSpacing: '0.01em',
-                  transition: 'all 0.2s',
+                  boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>explore</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>credit_card</span>
                 {t('landing.guestCta')}
               </button>
             )}
 
-            <p className="landing__note">{t('landing.note')}</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16, flexWrap: 'wrap' }}>
+              {[
+                { icon: 'lock', label: i18n.language.startsWith('ko') ? '보안 결제' : 'Secure' },
+                { icon: 'bolt', label: i18n.language.startsWith('ko') ? '즉시 결과' : 'Instant' },
+                { icon: 'autorenew', label: i18n.language.startsWith('ko') ? '구독 없음' : 'No subscription' },
+              ].map(({ icon, label }, idx, arr) => (
+                <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#6b7280', fontWeight: 600, letterSpacing: '0.03em' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 13, color: '#6366f1' }}>{icon}</span>
+                    {label}
+                  </span>
+                  {idx < arr.length - 1 && <span style={{ color: '#d1d5db' }}>·</span>}
+                </span>
+              ))}
+            </div>
 
             <div className="landing__legal">
               <a href="/terms.html">{t('landing.terms')}</a>
