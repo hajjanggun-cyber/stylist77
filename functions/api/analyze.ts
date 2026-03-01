@@ -176,7 +176,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                model: "gpt-4o",
+                model: "gpt-4.1-mini",
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userContent },
@@ -200,7 +200,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                     prompt: hairstylePrompt,
                     n: 1,
                     size: "1024x1024",
-                    model: "dall-e-3"
+                    model: "gpt-image-1",
+                    quality: "high"
                 })
             });
         }
