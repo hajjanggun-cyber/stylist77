@@ -6,7 +6,7 @@ import { supabase } from './lib/supabase'
 import type { Session, User } from '@supabase/supabase-js'
 import './App.css'
 
-type Page = 'landing' | 'auth' | 'form' | 'mypage'
+type Page = 'landing' | 'auth' | 'form' | 'mypage' | 'resetpw'
 type StyleGoalId = 'casual' | 'formal' | 'trendy' | 'date'
 
 interface StyleGoalOption {
@@ -38,6 +38,18 @@ function App() {
   const [authSubmitting, setAuthSubmitting] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
+
+  // ── 비밀번호 찾기 상태 ──
+  const [showForgotForm, setShowForgotForm] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotMsg, setForgotMsg] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+
+  // ── 비밀번호 재설정 상태 ──
+  const [resetPassword, setResetPassword] = useState('')
+  const [resetPasswordConfirm, setResetPasswordConfirm] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetMsg, setResetMsg] = useState('')
 
   // ── 마이페이지 상태 ──
   const [newPassword, setNewPassword] = useState('')
@@ -121,6 +133,9 @@ function App() {
         if (!params.get('checkout_id')) {
           setPage('landing')
         }
+      }
+      if (event === 'PASSWORD_RECOVERY') {
+        setPage('resetpw')
       }
     })
 
@@ -235,6 +250,33 @@ function App() {
     } finally {
       setDeleteLoading(false)
     }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) { setForgotMsg(t('auth.error_empty')); return }
+    setForgotLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: window.location.origin,
+    })
+    setForgotMsg(error ? error.message : t('auth.forgot_sent'))
+    setForgotLoading(false)
+  }
+
+  const handleResetPassword = async () => {
+    if (!resetPassword || !resetPasswordConfirm) { setResetMsg(t('mypage.error_empty')); return }
+    if (resetPassword !== resetPasswordConfirm) { setResetMsg(t('mypage.error_mismatch')); return }
+    if (resetPassword.length < 6) { setResetMsg(t('mypage.error_too_short')); return }
+    setResetLoading(true)
+    const { error } = await supabase.auth.updateUser({ password: resetPassword })
+    if (error) {
+      setResetMsg(error.message)
+    } else {
+      setResetMsg(t('auth.reset_success'))
+      setResetPassword('')
+      setResetPasswordConfirm('')
+      setTimeout(() => setPage('landing'), 2000)
+    }
+    setResetLoading(false)
   }
 
   const handleGoogleLogin = async () => {
@@ -482,6 +524,47 @@ function App() {
 
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
             <div style={{ width: '100%', maxWidth: 400 }}>
+              {/* 비밀번호 찾기 폼 */}
+              {showForgotForm ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <button
+                    onClick={() => { setShowForgotForm(false); setForgotMsg(''); setForgotEmail('') }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#888', fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 8 }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_back</span>
+                    {t('auth.back_to_login')}
+                  </button>
+                  <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                    <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>{t('auth.forgot_title')}</h2>
+                    <p style={{ margin: '8px 0 0', fontSize: 14, color: '#888' }}>{t('auth.forgot_desc')}</p>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#555', letterSpacing: '0.05em' }}>
+                      {t('auth.email').toUpperCase()}
+                    </label>
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={e => { setForgotEmail(e.target.value); setForgotMsg('') }}
+                      placeholder="you@example.com"
+                      className="metric-input"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  {forgotMsg && (
+                    <p style={{ margin: 0, fontSize: 13, color: forgotMsg === t('auth.forgot_sent') ? '#047857' : '#e53e3e', lineHeight: 1.5 }}>
+                      {forgotMsg}
+                    </p>
+                  )}
+                  <button onClick={handleForgotPassword} disabled={forgotLoading} className="landing__cta">
+                    {forgotLoading
+                      ? <><span className="loader" style={{ borderTopColor: '#fff' }} />&nbsp;{t('auth.forgot_send_btn')}</>
+                      : t('auth.forgot_send_btn')
+                    }
+                  </button>
+                </div>
+              ) : (<>
+
               {/* 헤딩 */}
               <div style={{ textAlign: 'center', marginBottom: 28 }}>
                 <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>
@@ -641,6 +724,16 @@ function App() {
                   </div>
                 )}
 
+                {isLoginMode && (
+                  <button
+                    type="button"
+                    onClick={() => { setShowForgotForm(true); setForgotMsg(''); setForgotEmail('') }}
+                    style={{ background: 'none', border: 'none', color: '#888', fontSize: 12, cursor: 'pointer', textAlign: 'right', padding: 0, textDecoration: 'underline', marginTop: -8 }}
+                  >
+                    {t('auth.forgot_password')}
+                  </button>
+                )}
+
                 {authError && (
                   <p style={{ margin: 0, fontSize: 13, color: '#e53e3e' }}>{authError}</p>
                 )}
@@ -673,6 +766,73 @@ function App() {
                 style={{ width: '100%', marginTop: 12, background: 'none', border: 'none', color: '#aaa', fontSize: 12, cursor: 'pointer' }}
               >
                 ← {t('auth.back')}
+              </button>
+              </>)}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ══════════════════════════════════════════
+  // ── Reset Password Page ──
+  // ══════════════════════════════════════════
+  if (page === 'resetpw') {
+    return (
+      <div className="app">
+        <div className="landing" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+          <header className="landing__header">
+            <span className="landing__logo-text" style={{ cursor: 'pointer' }} onClick={() => setPage('landing')}>AURA</span>
+            <button onClick={toggleLang} style={btnStyle}>{i18n.language.startsWith('ko') ? 'EN' : '한국어'}</button>
+          </header>
+
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
+            <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>{t('auth.reset_title')}</h2>
+                <p style={{ margin: '8px 0 0', fontSize: 14, color: '#888' }}>{t('auth.reset_desc')}</p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#555', letterSpacing: '0.05em' }}>
+                  {t('mypage.new_password').toUpperCase()}
+                </label>
+                <input
+                  type="password"
+                  value={resetPassword}
+                  onChange={e => { setResetPassword(e.target.value); setResetMsg('') }}
+                  placeholder="••••••••"
+                  className="metric-input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#555', letterSpacing: '0.05em' }}>
+                  {t('mypage.confirm_password').toUpperCase()}
+                </label>
+                <input
+                  type="password"
+                  value={resetPasswordConfirm}
+                  onChange={e => { setResetPasswordConfirm(e.target.value); setResetMsg('') }}
+                  placeholder="••••••••"
+                  className="metric-input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {resetMsg && (
+                <p style={{ margin: 0, fontSize: 13, color: resetMsg === t('auth.reset_success') ? '#047857' : '#e53e3e' }}>
+                  {resetMsg}
+                </p>
+              )}
+
+              <button onClick={handleResetPassword} disabled={resetLoading} className="landing__cta" style={{ marginTop: 4 }}>
+                {resetLoading
+                  ? <><span className="loader" style={{ borderTopColor: '#fff' }} />&nbsp;{t('auth.reset_btn')}</>
+                  : t('auth.reset_btn')
+                }
               </button>
             </div>
           </div>
