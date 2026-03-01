@@ -9,12 +9,33 @@ interface Env {
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url)
   const checkoutId = url.searchParams.get('checkout_id')
+  const guestMode = url.searchParams.get('guest') === '1'
 
   if (!checkoutId) {
     return new Response(JSON.stringify({ error: 'checkout_id required' }), { status: 400 })
   }
 
-  // 1) Auth: JWT 검증
+  // ── Guest 모드: Auth 없이 Polar로만 검증 ──
+  if (guestMode) {
+    const checkoutRes = await fetch(`https://api.polar.sh/v1/checkouts/${checkoutId}`, {
+      headers: { 'Authorization': `Bearer ${ctx.env.POLAR_ACCESS_TOKEN}` },
+    })
+    const checkout = await checkoutRes.json() as {
+      status?: string
+      order?: { id: string }
+      order_id?: string
+    }
+    const confirmed = checkout.status === 'confirmed' || checkout.status === 'succeeded'
+    if (!confirmed) {
+      return new Response(JSON.stringify({ paid: false }), { headers: { 'Content-Type': 'application/json' } })
+    }
+    // guest token = checkout_id 자체를 분석 시 검증 토큰으로 사용
+    return new Response(JSON.stringify({ paid: true, guestToken: checkoutId }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  // ── 일반 유저: JWT 검증 ──
   const authHeader = ctx.request.headers.get('Authorization')
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
@@ -59,19 +80,17 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const order = await orderRes.json() as { id: string, amount: number }
 
   // 4) Supabase payments 테이블에 결제 내역 저장
-  // 동일한 checkout_id나 order_id로 중복 삽입되는 것을 방지 (DB의 unique 제약조건 의존 또는 upsert 활용)
   const { error: insertError } = await supabase
     .from('payments')
     .upsert({
       user_id: user.id,
       order_id: order.id,
       checkout_id: checkoutId,
-      amount: order.amount || 399 // fallback
+      amount: order.amount || 399
     }, { onConflict: 'order_id' })
 
   if (insertError) {
     console.error('Payment insert error:', insertError)
-    // DB 저장 실패 시 프론트엔드에 알림. 실제 프로덕션에서는 결제는 성공했으나 DB 반영 실패 건에 대한 로깅/슬랙 알림 등이 필요함.
   }
 
   return new Response(JSON.stringify({ paid: true, orderId: order.id }), {

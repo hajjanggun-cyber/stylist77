@@ -5,6 +5,7 @@ interface Env {
     OPENAI_API_KEY: string;
     SUPABASE_URL: string;
     SUPABASE_SERVICE_KEY: string;
+    POLAR_ACCESS_TOKEN: string;
 }
 
 interface RequestBody {
@@ -67,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Guest-Mode",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Guest-Mode, X-Guest-Token",
         "Content-Type": "application/json",
     };
 
@@ -76,7 +77,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let supabase: ReturnType<typeof createClient> | null = null
     let paymentId: string | null = null
 
-    if (!guestMode) {
+    if (guestMode) {
+        // ── Guest: X-Guest-Token(checkout_id)으로 Polar에서 직접 결제 검증 ──
+        const guestToken = context.request.headers.get('X-Guest-Token')
+        if (!guestToken) {
+            return new Response(JSON.stringify({ error: 'Guest token required' }), { status: 401, headers: corsHeaders })
+        }
+        const polarRes = await fetch(`https://api.polar.sh/v1/checkouts/${guestToken}`, {
+            headers: { 'Authorization': `Bearer ${context.env.POLAR_ACCESS_TOKEN}` },
+        })
+        const checkout = await polarRes.json() as { status?: string }
+        const confirmed = checkout.status === 'confirmed' || checkout.status === 'succeeded'
+        if (!confirmed) {
+            return new Response(JSON.stringify({ error: 'Payment not confirmed' }), { status: 402, headers: corsHeaders })
+        }
+    } else {
         // ── Auth: JWT 검증 ──
         const authHeader = context.request.headers.get('Authorization')
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -247,7 +262,7 @@ export const onRequestOptions: PagesFunction = async () => {
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Guest-Mode, X-Guest-Token",
         },
     });
 };

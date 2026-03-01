@@ -39,6 +39,7 @@ function App() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
   const [isGuest, setIsGuest] = useState(false)
+  const [guestToken, setGuestToken] = useState<string | null>(null)
 
   // ── 비밀번호 찾기 상태 ──
   const [showForgotForm, setShowForgotForm] = useState(false)
@@ -87,12 +88,52 @@ function App() {
 
   // ── 앱 시작: 세션 확인 + 결제 리다이렉트 처리 ──
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const checkoutId = params.get('checkout_id')
+    const isGuestReturn = params.get('guest') === '1'
+
+    // ── 비회원 결제 복귀 처리 (세션 불필요) ──
+    if (checkoutId && isGuestReturn) {
+      setVerifying(true)
+      fetch(`/api/verify-checkout?checkout_id=${checkoutId}&guest=1`)
+        .then(r => r.json())
+        .then((data: { paid: boolean; guestToken?: string }) => {
+          if (!data.paid || !data.guestToken) return
+          window.history.replaceState({}, '', '/')
+          const raw = localStorage.getItem('aura_pending_form')
+          if (raw) {
+            try {
+              const saved = JSON.parse(raw) as { height: string; weight: string; styleGoal: StyleGoalId }
+              setHeight(saved.height)
+              setWeight(saved.weight)
+              setStyleGoal(saved.styleGoal)
+              localStorage.removeItem('aura_pending_form')
+              const savedImage = localStorage.getItem('aura_pending_image')
+              if (savedImage) { setSelectedImage(savedImage); localStorage.removeItem('aura_pending_image') }
+              pendingAnalysisRef.current = { ...saved, image: savedImage }
+            } catch { }
+          }
+          localStorage.setItem('aura_guest_token', data.guestToken)
+          setGuestToken(data.guestToken)
+          setIsGuest(true)
+          setHasPaid(true)  // pendingAnalysisRef 자동 분석 트리거 재활용
+        })
+        .catch(() => { })
+        .finally(() => setVerifying(false))
+      supabase.auth.getSession().then(({ data: { session: s } }: { data: { session: Session | null } }) => {
+        setSession(s); setUser(s?.user ?? null)
+      })
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, s: Session | null) => {
+        setSession(s); setUser(s?.user ?? null)
+        if (event === 'PASSWORD_RECOVERY') setPage('resetpw')
+      })
+      return () => subscription.unsubscribe()
+    }
+
     supabase.auth.getSession().then(({ data: { session: s } }: { data: { session: Session | null } }) => {
       setSession(s)
       setUser(s?.user ?? null)
 
-      const params = new URLSearchParams(window.location.search)
-      const checkoutId = params.get('checkout_id')
       if (!checkoutId || !s) return
 
       setVerifying(true)
@@ -143,13 +184,19 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // hasPaid + pendingAnalysisRef → 자동 분석
+  // hasPaid + pendingAnalysisRef → 자동 분석 (일반 유저 & guest 모두)
   useEffect(() => {
     if (!hasPaid || !pendingAnalysisRef.current) return
     const saved = pendingAnalysisRef.current
     pendingAnalysisRef.current = null
     setPage('form')
-    runAnalysis(saved.height, saved.weight, saved.styleGoal, saved.image)
+    // isGuest는 state이므로 클로저에서 최신값을 읽음
+    const gt = localStorage.getItem('aura_guest_token')
+    if (gt) {
+      runAnalysis(saved.height, saved.weight, saved.styleGoal, saved.image, true, gt)
+    } else {
+      runAnalysis(saved.height, saved.weight, saved.styleGoal, saved.image)
+    }
   }, [hasPaid])
 
   // 채팅 스크롤 처리
@@ -307,6 +354,7 @@ function App() {
     setDeleteConfirm(false)
     setPasswordUpdateMsg('')
     setIsGuest(false)
+    setGuestToken(null)
     setPage('landing')
     setResult('')
     setHairstyleImage(null)
@@ -320,11 +368,16 @@ function App() {
   }
 
   const handleGuestMode = () => {
-    if (localStorage.getItem('aura_guest_used')) {
+    const existingToken = localStorage.getItem('aura_guest_token')
+    const usedToken = localStorage.getItem('aura_guest_used')
+    // 이미 사용한 토큰이 있으면 로그인 유도
+    if (existingToken && existingToken === usedToken) {
       alert(t('landing.guestUsed'))
       setPage('auth')
       return
     }
+    // 결제는 했지만 아직 미사용 토큰이 있으면 복원
+    if (existingToken) setGuestToken(existingToken)
     setIsGuest(true)
     setPage('form')
   }
@@ -347,7 +400,7 @@ function App() {
   }
 
   // ── 분석 실행 ──
-  const runAnalysis = async (h: string, w: string, sg: StyleGoalId, img: string | null, guest = false) => {
+  const runAnalysis = async (h: string, w: string, sg: StyleGoalId, img: string | null, guest = false, explicitGuestToken?: string) => {
     setLoading(true)
     setResult('')
     setHairstyleImage(null)
@@ -356,7 +409,14 @@ function App() {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
 
     if (guest) {
+      const token = explicitGuestToken || guestToken
+      if (!token) {
+        setResult(t('error.networkError'))
+        setLoading(false)
+        return
+      }
       headers['X-Guest-Mode'] = 'true'
+      headers['X-Guest-Token'] = token
     } else {
       const { data: { session: freshSession } } = await supabase.auth.getSession()
       if (!freshSession) {
@@ -388,7 +448,8 @@ function App() {
       setHairstyleImage(data.hairstyleImage || null)
       setAnalysisSuccess(true)
       if (guest) {
-        localStorage.setItem('aura_guest_used', 'true')
+        const usedToken = explicitGuestToken || guestToken
+        if (usedToken) localStorage.setItem('aura_guest_used', usedToken)
       } else {
         setHasPaid(false)
       }
@@ -436,7 +497,33 @@ function App() {
     if (!height || !weight) { alert(t('error.noMeasurements')); return }
 
     if (isGuest) {
-      await runAnalysis(height, weight, styleGoal, selectedImage, true)
+      if (guestToken) {
+        // 이미 결제 완료된 토큰 있음 → 바로 분석
+        await runAnalysis(height, weight, styleGoal, selectedImage, true)
+        return
+      }
+      // 토큰 없음 → Polar 결제 진행 (비회원)
+      localStorage.setItem('aura_pending_form', JSON.stringify({ height, weight, styleGoal }))
+      if (selectedImage) { try { localStorage.setItem('aura_pending_image', selectedImage) } catch { } }
+      setLoading(true)
+      try {
+        const successUrl = `${window.location.origin}/?checkout_id={CHECKOUT_ID}&guest=1`
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ successUrl }),
+        })
+        const data = await res.json() as { checkoutUrl?: string; error?: string }
+        if (data.checkoutUrl) {
+          window.location.href = data.checkoutUrl
+        } else {
+          alert(t('error.checkoutError'))
+          setLoading(false)
+        }
+      } catch {
+        alert(t('error.checkoutError'))
+        setLoading(false)
+      }
       return
     }
 
@@ -1566,12 +1653,12 @@ function App() {
           <section className="section-cta">
             <button className="cta-btn" onClick={analyzeStyle} disabled={loading}>
               {loading
-                ? <><span className="loader" />&nbsp;{t('button.analyzing')}</>
-                : isGuest || hasPaid ? t('button.analyze') : t('button.analyzeWithPayment')
+                ? <><span className="loader" />&nbsp;{(isGuest && !guestToken) ? t('button.redirecting') : t('button.analyzing')}</>
+                : (hasPaid || (isGuest && guestToken)) ? t('button.analyze') : t('button.analyzeWithPayment')
               }
             </button>
             <p className="cta-note">
-              {isGuest || hasPaid ? t('cta.noteAfterPaid') : t('cta.noteBefore')}
+              {(hasPaid || (isGuest && guestToken)) ? t('cta.noteAfterPaid') : t('cta.noteBefore')}
             </p>
           </section>
         )}

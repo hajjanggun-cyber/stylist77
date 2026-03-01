@@ -10,8 +10,8 @@
     },
     "verifying": "Verifying payment...",
     "cta": "Start Style Analysis",
-    "guestCta": "Try once free — no account needed",
-    "guestUsed": "You've already used your free trial. Please sign in to continue.",
+    "guestCta": "Pay once, no account needed",
+    "guestUsed": "You've already used your one-time pass. Sign in to continue.",
     "note": "Login required · Pay per analysis",
     "terms": "Terms of Service",
     "refund": "Refund Policy",
@@ -114,8 +114,8 @@
     "delete_error": "Failed to delete account. Please try again."
   },
   "guest": {
-    "signupBanner": "Like what you see? Sign up to keep analyzing.",
-    "signupBtn": "Create Free Account"
+    "signupBanner": "Like what you see? Sign up for more.",
+    "signupBtn": "Create Account"
   },
   "auth": {
     "login": "Log In",
