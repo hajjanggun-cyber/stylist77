@@ -200,7 +200,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                     prompt: hairstylePrompt,
                     n: 1,
                     size: "1024x1024",
-                    model: "gpt-image-1",
+                    model: "gpt-image-1.5",
                     quality: "high"
                 })
             });
